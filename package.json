@@ -6,7 +6,8 @@
   "main": "lib/index.js",
   "license": "MIT",
   "scripts": {
-    "prepublish": "babel --optional runtime src/ --out-dir lib/"
+    "prepublish": "babel --optional runtime src/ --out-dir lib/",
+    "test": "mocha --reporter spec --full-trace test/tests.js"
   },
   "dependencies": {
     "babel-runtime": "^6.11.6",
