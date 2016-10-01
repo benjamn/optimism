@@ -3,8 +3,27 @@
   "version": "0.1.0",
   "author": "Ben Newman <ben@benjamn.com>",
   "description": "Composable reactive caching with efficient invalidation.",
+  "keywords": [
+    "caching",
+    "cache",
+    "invalidation",
+    "reactive",
+    "reactivity",
+    "dependency",
+    "tracking",
+    "tracker",
+    "memoization"
+  ],
   "main": "lib/index.js",
   "license": "MIT",
+  "homepage": "https://github.com/benjamn/optimism#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benjamn/optimism.git"
+  },
+  "bugs": {
+    "url": "https://github.com/benjamn/optimism/issues"
+  },
   "scripts": {
     "prepublish": "babel src/ --out-dir lib/",
     "test": "mocha --compilers js:babel-register --reporter spec --full-trace test/tests.js"
