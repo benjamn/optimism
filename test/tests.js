@@ -1,6 +1,6 @@
 var assert = require("assert");
 var crypto = require("crypto");
-var makeOptimistic = require("optimism").makeOptimistic;
+var makeOptimistic = require("../lib/index.js").makeOptimistic;
 
 describe("optimism", function () {
   it("sanity", function () {
