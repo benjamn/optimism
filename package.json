@@ -1,0 +1,25 @@
+{
+  "name": "optimism",
+  "version": "0.1.0",
+  "author": "Ben Newman <ben@benjamn.com>",
+  "description": "Composable reactive caching with efficient invalidation.",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "scripts": {
+    "prepublish": "babel --optional runtime src/ --out-dir lib/"
+  },
+  "dependencies": {
+    "babel-runtime": "^6.11.6",
+    "lru-cache": "^4.0.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.16.0",
+    "babel-preset-es2015": "^6.16.0",
+    "mocha": "^3.1.0"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
+  }
+}
