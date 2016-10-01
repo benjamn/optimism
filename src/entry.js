@@ -25,11 +25,18 @@ export class Entry {
   reportDirtyChild(child) {
     assert(this.childValues.has(child));
 
+    if (this.dirtyChildren.has(child)) {
+      // If we already know this child is dirty, then we must have already
+      // informed our own parents that we are dirty, so we can terminate
+      // the recursion early.
+      return;
+    }
+
     this.dirtyChildren.add(child);
 
     this.parents.forEach(parent => {
       parent.reportDirtyChild(this);
-    })
+    });
   }
 
   reportCleanChild(child) {
