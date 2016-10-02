@@ -1,5 +1,6 @@
 const assert = require("assert");
 const UNKNOWN_VALUE = Object.create(null);
+const emptySetPool = [];
 let currentParentEntry;
 
 export class Entry {
@@ -11,7 +12,11 @@ export class Entry {
     this.dirty = true;
     this.parents = new Set;
     this.childValues = new Map;
-    this.dirtyChildren = new Set;
+
+    // When this Entry has children that are dirty, this property becomes
+    // a Set containing other Entry objects, borrowed from emptySetPool.
+    // When the set becomes empty, it gets recycled back to emptySetPool.
+    this.dirtyChildren = null;
   }
 
   setDirty() {
@@ -25,7 +30,12 @@ export class Entry {
   reportDirtyChild(child) {
     assert(this.childValues.has(child));
 
-    if (this.dirtyChildren.has(child)) {
+    if (! this.dirtyChildren) {
+      // Initialize this.dirtyChildren with an empty set drawn from the
+      // emptySetPool if possible.
+      this.dirtyChildren = emptySetPool.pop() || new Set;
+
+    } else if (this.dirtyChildren.has(child)) {
       // If we already know this child is dirty, then we must have already
       // informed our own parents that we are dirty, so we can terminate
       // the recursion early.
@@ -43,10 +53,20 @@ export class Entry {
     assert(! child.dirty);
 
     this.childValues.set(child, child.value);
-    this.dirtyChildren.delete(child);
 
-    if (this.dirty ||
-        this.dirtyChildren.size > 0) {
+    let dc = this.dirtyChildren;
+    if (dc) {
+      dc.delete(child);
+      if (dc.size === 0) {
+        emptySetPool.push(dc);
+        dc = this.dirtyChildren = null;
+      }
+    }
+
+    if (this.dirty || dc) {
+      // This Entry is not clean, either because it's explicitly dirty or
+      // because it still has dirty children, so we can't report it as
+      // clean to its parents.
       return;
     }
 
@@ -60,12 +80,14 @@ export class Entry {
       return this.recompute();
     }
 
-    this.dirtyChildren.forEach(child => {
-      const oldValue = this.childValues.get(child);
-      if (child.recomputeIfDirty() !== oldValue) {
-        this.dirty = true;
-      }
-    });
+    if (this.dirtyChildren) {
+      this.dirtyChildren.forEach(child => {
+        const oldValue = this.childValues.get(child);
+        if (child.recomputeIfDirty() !== oldValue) {
+          this.dirty = true;
+        }
+      });
+    }
 
     if (this.dirty) {
       return this.recompute();
@@ -95,7 +117,13 @@ export class Entry {
     this.childValues.forEach(
       (value, child) => child.parents.delete(this));
     this.childValues.clear();
-    this.dirtyChildren.clear();
+
+    const dc = this.dirtyChildren;
+    if (dc) {
+      dc.clear();
+      emptySetPool.push(dc);
+      this.dirtyChildren = null;
+    }
   }
 
   updateParents() {
