@@ -54,4 +54,59 @@ describe("optimism", function () {
     assert.strictEqual(hash1, hash2);
     assert.notStrictEqual(hash1, hash3);
   });
+
+  it("works with subscription functions", function () {
+    var dirty;
+    var sep = ",";
+    var unsubscribed = Object.create(null);
+    var test = wrap(function (x) {
+      return [x, x, x].join(sep);
+    }, {
+      max: 1,
+      subscribe: function (x) {
+        dirty = function () {
+          test.dirty(x);
+        };
+
+        return function () {
+          assert.strictEqual(this, test);
+          unsubscribed[x] = true;
+        };
+      }
+    });
+
+    assert.strictEqual(test("a"), "a,a,a");
+
+    assert.strictEqual(test("b"), "b,b,b");
+    assert.deepEqual(unsubscribed, { a: true });
+
+    assert.strictEqual(test("c"), "c,c,c");
+    assert.deepEqual(unsubscribed, {
+      a: true,
+      b: true
+    });
+
+    sep = ":";
+
+    assert.strictEqual(test("c"), "c,c,c");
+    assert.deepEqual(unsubscribed, {
+      a: true,
+      b: true
+    });
+
+    dirty();
+
+    assert.strictEqual(test("c"), "c:c:c");
+    assert.deepEqual(unsubscribed, {
+      a: true,
+      b: true
+    });
+
+    assert.strictEqual(test("d"), "d:d:d");
+    assert.deepEqual(unsubscribed, {
+      a: true,
+      b: true,
+      c: true
+    });
+  });
 });
