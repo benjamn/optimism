@@ -11,7 +11,7 @@ describe("optimism", function () {
     var test = wrap(function (x) {
       return x + salt;
     }, {
-      makeCacheKey(x) {
+      makeCacheKey: function (x) {
         return x;
       }
     });
