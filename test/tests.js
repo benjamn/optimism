@@ -1,14 +1,14 @@
 var assert = require("assert");
 var crypto = require("crypto");
-var makeOptimistic = require("../lib/index.js").makeOptimistic;
+var wrap = require("../lib/index.js").wrap;
 
 describe("optimism", function () {
   it("sanity", function () {
-    assert.strictEqual(typeof makeOptimistic, "function");
+    assert.strictEqual(typeof wrap, "function");
   });
 
   it("works with single functions", function () {
-    var test = makeOptimistic(function (x) {
+    var test = wrap(function (x) {
       return x + salt;
     }, {
       makeCacheKey(x) {
@@ -33,11 +33,11 @@ describe("optimism", function () {
       "b.js": new Buffer("bee")
     };
 
-    var read = makeOptimistic(function (path) {
+    var read = wrap(function (path) {
       return files[path];
     });
 
-    var hash = makeOptimistic(function (paths) {
+    var hash = wrap(function (paths) {
       var h = crypto.createHash("sha1");
       paths.forEach(function (path) {
         h.update(read(path));
