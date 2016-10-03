@@ -109,4 +109,70 @@ describe("optimism", function () {
       c: true
     });
   });
+
+  it("is not confused by fibers", function () {
+    var Fiber = require("fibers");
+    var order = [];
+    var result1 = "one";
+    var result2 = "two";
+
+    var f1 = new Fiber(function () {
+      order.push(1);
+
+      var o1 = wrap(function () {
+        Fiber.yield();
+        return result1;
+      });
+
+      order.push(2);
+      assert.strictEqual(o1(), "one");
+      order.push(3);
+      result1 += ":dirty";
+      assert.strictEqual(o1(), "one");
+      order.push(4);
+      Fiber.yield();
+      order.push(5);
+      assert.strictEqual(o1(), "one");
+      order.push(6);
+      o1.dirty();
+      order.push(7);
+      assert.strictEqual(o1(), "one:dirty");
+      order.push(8);
+      assert.strictEqual(o2(), "two:dirty");
+      order.push(9);
+    });
+
+    var result2 = "two"
+    var o2 = wrap(function () {
+      return result2;
+    });
+
+    order.push(0);
+
+    f1.run();
+    assert.deepEqual(order, [0, 1, 2]);
+
+    // The primary goal of this test is to make sure this call to o2()
+    // does not register a dirty-chain dependency for o1.
+    assert.strictEqual(o2(), "two");
+
+    f1.run();
+    assert.deepEqual(order, [0, 1, 2, 3, 4]);
+
+    // If the call to o2() captured o1() as a parent, then this o2.dirty()
+    // call will report the o1() call dirty, which is not what we want.
+    result2 += ":dirty";
+    o2.dirty();
+
+    f1.run();
+    // The call to o1() between order.push(5) and order.push(6) should not
+    // yield, because it should still be cached, because it should not be
+    // dirty. However, the call to o1() between order.push(7) and
+    // order.push(8) should yield, because we call o1.dirty() explicitly,
+    // which is why this assertion stops at 7.
+    assert.deepEqual(order, [0, 1, 2, 3, 4, 5, 6, 7]);
+
+    f1.run();
+    assert.deepEqual(order, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
 });
