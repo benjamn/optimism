@@ -28,13 +28,10 @@
     "test": "mocha --reporter spec --full-trace test/tests.js"
   },
   "dependencies": {
-    "lru-cache": "^4.0.1"
+    "lru-cache": "~4.0.1"
   },
   "devDependencies": {
-    "fibers": "^1.0.14",
+    "fibers": "1.0.14",
     "mocha": "^3.1.0"
-  },
-  "optionalDependencies": {
-    "fibers": "^1.0.14"
   }
 }
