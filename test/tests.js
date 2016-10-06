@@ -175,4 +175,25 @@ describe("optimism", function () {
     f1.run();
     assert.deepEqual(order, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
+
+  it("marks evicted cache entries dirty", function () {
+    var childSalt = "*";
+    var child = wrap(function (x) {
+      return x + childSalt;
+    }, { max: 1 });
+
+    var parentSalt = "^";
+    var parent = wrap(function (x) {
+      return child(x) + parentSalt;
+    });
+
+    assert.strictEqual(parent("asdf"), "asdf*^");
+
+    childSalt = "&";
+    parentSalt = "%";
+
+    assert.strictEqual(parent("asdf"), "asdf*^");
+    assert.strictEqual(child("zxcv"), "zxcv&");
+    assert.strictEqual(parent("asdf"), "asdf&%");
+  });
 });
