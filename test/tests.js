@@ -68,8 +68,9 @@ describe("optimism", function () {
           test.dirty(x);
         };
 
+        delete unsubscribed[x];
+
         return function () {
-          assert.strictEqual(this, test);
           unsubscribed[x] = true;
         };
       }
