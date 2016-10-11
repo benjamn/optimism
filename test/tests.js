@@ -29,9 +29,11 @@ describe("optimism", function () {
 
   it("works with two layers of functions", function () {
     var files = {
-      "a.js": new Buffer("ay"),
-      "b.js": new Buffer("bee")
+      "a.js": "a",
+      "b.js": "b"
     };
+
+    var fileNames = Object.keys(files);
 
     var read = wrap(function (path) {
       return files[path];
@@ -45,14 +47,19 @@ describe("optimism", function () {
       return h.digest("hex");
     });
 
-    var hash1 = hash(["a.js", "b.js"]);
+    var hash1 = hash(fileNames);
     files["a.js"] += "yy";
-    var hash2 = hash(["a.js", "b.js"]);
+    var hash2 = hash(fileNames);
     read.dirty("a.js");
-    var hash3 = hash(["a.js", "b.js"]);
+    var hash3 = hash(fileNames);
+    files["b.js"] += "ee";
+    read.dirty("b.js");
+    var hash4 = hash(fileNames);
 
     assert.strictEqual(hash1, hash2);
     assert.notStrictEqual(hash1, hash3);
+    assert.notStrictEqual(hash1, hash4);
+    assert.notStrictEqual(hash3, hash4);
   });
 
   it("works with subscription functions", function () {
