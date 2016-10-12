@@ -229,4 +229,26 @@ describe("optimism", function () {
     parent.dirty();
     assert.strictEqual(parent(), expected);
   });
+
+  it("reports clean children to correct parents", function () {
+    var childResult = "a";
+    var child = wrap(function () {
+      return childResult;
+    });
+
+    var parent = wrap(function (x) {
+      return child() + x;
+    });
+
+    assert.strictEqual(parent(1), "a1");
+    assert.strictEqual(parent(2), "a2");
+
+    childResult = "b";
+    child.dirty();
+
+    // If this call to parent(1) mistakenly reports child() as clean to
+    // parent(2), then the second assertion will fail by returning "a2".
+    assert.strictEqual(parent(1), "b1");
+    assert.strictEqual(parent(2), "b2");
+  });
 });
