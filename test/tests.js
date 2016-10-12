@@ -204,4 +204,29 @@ describe("optimism", function () {
     assert.strictEqual(child("zxcv"), "zxcv&");
     assert.strictEqual(parent("asdf"), "asdf&%");
   });
+
+  it("handles children throwing exceptions", function () {
+    var expected = new Error("oyez");
+
+    var child = wrap(function () {
+      throw expected;
+    });
+
+    var parent = wrap(function () {
+      try {
+        child();
+      } catch (e) {
+        return e;
+      }
+    });
+
+    assert.strictEqual(parent(), expected);
+    assert.strictEqual(parent(), expected);
+
+    child.dirty();
+    assert.strictEqual(parent(), expected);
+
+    parent.dirty();
+    assert.strictEqual(parent(), expected);
+  });
 });
