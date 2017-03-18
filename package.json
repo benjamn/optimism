@@ -31,7 +31,7 @@
     "lru-cache": "~4.0.1"
   },
   "devDependencies": {
-    "fibers": "1.0.14",
+    "fibers": "1.0.15",
     "mocha": "^3.1.0"
   }
 }
