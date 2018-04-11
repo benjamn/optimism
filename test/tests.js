@@ -252,7 +252,7 @@ describe("optimism", function () {
     assert.strictEqual(parent(2), "b2");
   });
 
-  xit("supports object cache keys", function () {
+  it("supports object cache keys", function () {
     var counter = 0;
     var wrapped = wrap(function () {
       return counter++;
