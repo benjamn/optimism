@@ -1,10 +1,12 @@
 var assert = require("assert");
 var crypto = require("crypto");
-var wrap = require("../lib/index.js").wrap;
+var optimism = require("../lib/index.js");
+var wrap = optimism.wrap;
 
 describe("optimism", function () {
   it("sanity", function () {
     assert.strictEqual(typeof wrap, "function");
+    assert.strictEqual(typeof optimism.defaultMakeCacheKey, "function");
   });
 
   it("works with single functions", function () {
