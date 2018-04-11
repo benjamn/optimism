@@ -251,4 +251,28 @@ describe("optimism", function () {
     assert.strictEqual(parent(1), "b1");
     assert.strictEqual(parent(2), "b2");
   });
+
+  it("supports object cache keys", function () {
+    var counter = 0;
+    var wrapped = wrap(function () {
+      return counter++;
+    });
+
+    var a = {};
+    var b = {};
+
+    // Different combinations of distinct object references should
+    // increment the counter.
+    assert.strictEqual(wrapped(a, a), 0);
+    assert.strictEqual(wrapped(a, b), 1);
+    assert.strictEqual(wrapped(b, a), 2);
+    assert.strictEqual(wrapped(b, b), 3);
+
+    // But the same combinations of arguments should return the same
+    // cached values when passed again.
+    assert.strictEqual(wrapped(a, a), 0);
+    assert.strictEqual(wrapped(a, b), 1);
+    assert.strictEqual(wrapped(b, a), 2);
+    assert.strictEqual(wrapped(b, b), 3);
+  });
 });
