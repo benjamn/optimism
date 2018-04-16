@@ -277,4 +277,57 @@ describe("optimism", function () {
     assert.strictEqual(wrapped(b, a), 2);
     assert.strictEqual(wrapped(b, b), 3);
   });
+
+  it("detects problematic cycles", function () {
+    var self = wrap(function () {
+      return self() + 1;
+    });
+
+    var mutualA = wrap(function () {
+      return mutualB() + 1;
+    });
+
+    var mutualB = wrap(function () {
+      return mutualA() + 1;
+    });
+
+    function check(fn) {
+      try {
+        fn();
+        throw new Error("should not get here");
+      } catch (e) {
+        assert.strictEqual(e.message, "already recomputing");
+      }
+
+      // Try dirtying the function, now that there's a cycle in the Entry
+      // graph. This should succeed.
+      fn.dirty();
+    }
+
+    check(self);
+    check(mutualA);
+    check(mutualB);
+
+    var returnZero = true;
+    var fn = wrap(function () {
+      if (returnZero) {
+        returnZero = false;
+        return 0;
+      }
+      returnZero = true;
+      return fn() + 1;
+    });
+
+    assert.strictEqual(fn(), 0);
+    assert.strictEqual(returnZero, false);
+
+    returnZero = true;
+    assert.strictEqual(fn(), 0);
+    assert.strictEqual(returnZero, true);
+
+    fn.dirty();
+
+    returnZero = false;
+    check(fn);
+  });
 });
