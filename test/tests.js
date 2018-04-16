@@ -331,3 +331,105 @@ describe("optimism", function () {
     check(fn);
   });
 });
+
+describe("least-recently-used cache", function () {
+  var Cache = require("../lib/cache.js").Cache;
+
+  it("can hold lots of elements", function () {
+    var cache = new Cache;
+    var count = 1000000;
+
+    for (var i = 0; i < count; ++i) {
+      cache.set(i, String(i));
+    }
+
+    assert.strictEqual(cache.map.size, count);
+    assert(cache.has(0));
+    assert(cache.has(count - 1));
+    assert.strictEqual(cache.get(43), "43");
+  });
+
+  it("evicts excess old elements", function () {
+    var max = 10;
+    var evicted = [];
+    var cache = new Cache({
+      max: max,
+      dispose(key, value) {
+        assert.strictEqual(String(key), value);
+        evicted.push(key);
+      }
+    });
+
+    var count = 100;
+    var keys = [];
+    for (var i = 0; i < count; ++i) {
+      cache.set(i, String(i));
+      keys.push(i);
+    }
+
+    assert.strictEqual(cache.map.size, max);
+    assert.strictEqual(evicted.length, count - max);
+
+    for (var i = count - max; i < count; ++i) {
+      assert(cache.has(i));
+    }
+  });
+
+  it("can cope with small max values", function () {
+    var cache = new Cache({ max: 2 });
+
+    function check(...sequence) {
+      var entry = cache.newest;
+      var forwards = [];
+      while (entry) {
+        forwards.push(entry.key);
+        entry = entry.older;
+      }
+      assert.deepEqual(forwards, sequence);
+
+      var backwards = [];
+      entry = cache.oldest;
+      while (entry) {
+        backwards.push(entry.key);
+        entry = entry.newer;
+      }
+      backwards.reverse();
+      assert.deepEqual(backwards, sequence);
+
+      sequence.forEach(function (n) {
+        assert.strictEqual(cache.map.get(n).value, n + 1);
+      });
+
+      if (sequence.length > 0) {
+        assert.strictEqual(cache.newest.key, sequence[0]);
+        assert.strictEqual(cache.oldest.key,
+                           sequence[sequence.length - 1]);
+      }
+    }
+
+    cache.set(1, 2);
+    check(1);
+
+    cache.set(2, 3);
+    check(2, 1);
+
+    cache.set(3, 4);
+    check(3, 2);
+
+    cache.get(2);
+    check(2, 3);
+
+    cache.set(4, 5);
+    check(4, 2);
+
+    assert.strictEqual(cache.has(1), false);
+    assert.strictEqual(cache.get(2), 3);
+    assert.strictEqual(cache.has(3), false);
+    assert.strictEqual(cache.get(4), 5);
+
+    cache.delete(2);
+    check(4);
+    cache.delete(4);
+    check();
+  });
+});

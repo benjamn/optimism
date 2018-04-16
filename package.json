@@ -28,8 +28,7 @@
     "test": "mocha --reporter spec --full-trace test/tests.js"
   },
   "dependencies": {
-    "immutable-tuple": "^0.4.4",
-    "lru-cache": "^4.1.1"
+    "immutable-tuple": "^0.4.4"
   },
   "devDependencies": {
     "fibers": "^2.0.0",
