@@ -432,5 +432,8 @@ describe("least-recently-used cache", function () {
     check(4);
     cache.delete(4);
     check();
+
+    assert.strictEqual(cache.newest, null);
+    assert.strictEqual(cache.oldest, null);
   });
 });
