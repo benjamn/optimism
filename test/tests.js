@@ -330,6 +330,73 @@ describe("optimism", function () {
     returnZero = false;
     check(fn);
   });
+
+  it("supports disposable wrapped functions", function () {
+    var dependCallCount = 0;
+    var depend = wrap(function () {
+      return ++dependCallCount;
+    }, {
+      disposable: true
+    });
+
+    assert.strictEqual(typeof depend(), "undefined");
+    assert.strictEqual(dependCallCount, 0);
+
+    var parentCallCount = 0;
+    var parent = wrap(function () {
+      ++parentCallCount;
+      assert.strictEqual(typeof depend(1), "undefined");
+      assert.strictEqual(typeof depend(2), "undefined");
+    });
+
+    parent();
+    assert.strictEqual(parentCallCount, 1);
+    assert.strictEqual(dependCallCount, 2);
+
+    parent();
+    assert.strictEqual(parentCallCount, 1);
+    assert.strictEqual(dependCallCount, 2);
+
+    depend.dirty(1);
+    parent();
+    assert.strictEqual(parentCallCount, 2);
+    assert.strictEqual(dependCallCount, 3);
+
+    depend.dirty(2);
+    parent();
+    assert.strictEqual(parentCallCount, 3);
+    assert.strictEqual(dependCallCount, 4);
+
+    parent();
+    assert.strictEqual(parentCallCount, 3);
+    assert.strictEqual(dependCallCount, 4);
+
+    parent.dirty();
+    parent();
+    assert.strictEqual(parentCallCount, 4);
+    assert.strictEqual(dependCallCount, 4);
+
+    depend.dirty(1);
+    depend(1);
+    // No change to dependCallCount because depend is called outside of
+    // any parent computation, and depend is disposable.
+    assert.strictEqual(dependCallCount, 4);
+    depend(2);
+    assert.strictEqual(dependCallCount, 4);
+
+    depend.dirty(2);
+    depend(1);
+    // Again, no change because depend is disposable.
+    assert.strictEqual(dependCallCount, 4);
+    depend(2);
+    assert.strictEqual(dependCallCount, 4);
+
+    parent();
+    // Now, since both depend(1) and depend(2) are dirty, calling them in
+    // the context of the parent() computation results in two more
+    // increments of dependCallCount.
+    assert.strictEqual(dependCallCount, 6);
+  });
 });
 
 describe("least-recently-used cache", function () {
