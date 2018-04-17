@@ -378,7 +378,8 @@ describe("least-recently-used cache", function () {
   it("can cope with small max values", function () {
     var cache = new Cache({ max: 2 });
 
-    function check(...sequence) {
+    function check() {
+      var sequence = Array.prototype.slice.call(arguments);
       var entry = cache.newest;
       var forwards = [];
       while (entry) {
