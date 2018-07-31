@@ -31,7 +31,7 @@
     "immutable-tuple": "^0.4.4"
   },
   "devDependencies": {
-    "fibers": "^2.0.0",
+    "fibers": "^3.0.0",
     "mocha": "^5.0.0"
   }
 }
