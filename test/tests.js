@@ -504,3 +504,20 @@ describe("least-recently-used cache", function () {
     assert.strictEqual(cache.oldest, null);
   });
 });
+
+describe("performance", function () {
+  this.timeout(10000);
+
+  it("should be able to tolerate lots of Entry objects", function () {
+    let counter = 0;
+    const child = wrap(() => counter++);
+    const parent = wrap((obj1, num, obj2) => {
+      child(obj1, counter);
+      child(counter, obj2);
+      return counter++;
+    });
+    for (let i = 0; i < 100000; ++i) {
+      parent({}, i, {});
+    }
+  });
+});
