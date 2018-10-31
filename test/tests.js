@@ -412,6 +412,8 @@ describe("least-recently-used cache", function () {
       cache.set(i, String(i));
     }
 
+    cache.clean();
+
     assert.strictEqual(cache.map.size, count);
     assert(cache.has(0));
     assert(cache.has(count - 1));
@@ -436,6 +438,8 @@ describe("least-recently-used cache", function () {
       keys.push(i);
     }
 
+    cache.clean();
+
     assert.strictEqual(cache.map.size, max);
     assert.strictEqual(evicted.length, count - max);
 
@@ -448,6 +452,8 @@ describe("least-recently-used cache", function () {
     var cache = new Cache({ max: 2 });
 
     function check() {
+      cache.clean();
+
       var sequence = Array.prototype.slice.call(arguments);
       var entry = cache.newest;
       var forwards = [];
