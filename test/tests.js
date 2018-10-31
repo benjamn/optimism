@@ -508,7 +508,7 @@ describe("least-recently-used cache", function () {
 });
 
 describe("performance", function () {
-  this.timeout(10000);
+  this.timeout(30000);
 
   it("should be able to tolerate lots of Entry objects", function () {
     let counter = 0;
