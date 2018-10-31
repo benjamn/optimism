@@ -399,6 +399,26 @@ describe("optimism", function () {
     // increments of dependCallCount.
     assert.strictEqual(dependCallCount, 6);
   });
+
+  it("is not confused by eviction during recomputation", function () {
+    var fib = wrap(function (n) {
+      if (n > 1) {
+        return fib(n - 1) + fib(n - 2);
+      }
+      return n;
+    }, {
+      max: 10
+    });
+
+    assert.strictEqual(fib(78), 8944394323791464);
+    assert.strictEqual(fib(68), 72723460248141);
+    assert.strictEqual(fib(58), 591286729879);
+    assert.strictEqual(fib(48), 4807526976);
+    assert.strictEqual(fib(38), 39088169);
+    assert.strictEqual(fib(28), 317811);
+    assert.strictEqual(fib(18), 2584);
+    assert.strictEqual(fib(8),  21);
+  });
 });
 
 describe("least-recently-used cache", function () {
