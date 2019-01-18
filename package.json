@@ -15,6 +15,7 @@
     "memoization"
   ],
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "license": "MIT",
   "homepage": "https://github.com/benjamn/optimism#readme",
   "repository": {
