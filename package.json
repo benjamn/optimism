@@ -29,7 +29,7 @@
     "test": "mocha --reporter spec --full-trace test/tests.js"
   },
   "dependencies": {
-    "immutable-tuple": "^0.4.9"
+    "immutable-tuple": "^0.4.10"
   },
   "devDependencies": {
     "fibers": "^3.0.0",
