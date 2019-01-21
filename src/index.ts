@@ -1,52 +1,34 @@
-"use strict";
-
-var Cache = require("./cache.js").Cache;
-var tuple = require("immutable-tuple").tuple;
-var Entry = require("./entry.js").Entry;
-var getLocal = require("./local.js").get;
+import { Cache } from "./cache";
+import { Entry } from "./entry";
+import { get as getLocal } from "./local";
 
 // Exported so that custom makeCacheKey functions can easily reuse the
 // default implementation (with different arguments).
-exports.defaultMakeCacheKey = tuple;
+export const defaultMakeCacheKey: (...args: any[]) => any =
+  require("immutable-tuple").tuple;
 
-function normalizeOptions(options) {
-  options = options || Object.create(null);
-
-  if (typeof options.makeCacheKey !== "function") {
-    options.makeCacheKey = tuple;
-  }
-
-  if (typeof options.max !== "number") {
-    options.max = Math.pow(2, 16);
-  }
-
-  return options;
-}
-
-function wrap(fn, options) {
-  options = normalizeOptions(options);
-
+export function wrap<T extends (...args: any[]) => any>(fn: T, {
+  max = Math.pow(2, 16),
+  makeCacheKey = defaultMakeCacheKey,
   // If this wrapped function is disposable, then its creator does not
   // care about its return value, and it should be removed from the cache
   // immediately when it no longer has any parents that depend on it.
-  var disposable = !! options.disposable;
-
-  var cache = new Cache({
-    max: options.max,
-    dispose: function (key, entry) {
+  disposable = false,
+  subscribe = null,
+} = Object.create(null)) {
+  const cache = new Cache<object, Entry>({
+    max,
+    dispose(_key, entry) {
       entry.dispose();
-    }
+    },
   });
 
-  function reportOrphan(entry) {
-    if (disposable) {
-      // Triggers the entry.dispose() call above.
-      cache.delete(entry.key);
-      return true;
-    }
+  function reportOrphan(entry: Entry) {
+    // Triggers the entry.dispose() call above.
+    return disposable && cache.delete(entry.key);
   }
 
-  function optimistic() {
+  function optimistic(...args: any[]): any {
     if (disposable && ! getLocal().currentParentEntry) {
       // If there's no current parent computation, and this wrapped
       // function is disposable (meaning we don't care about entry.value,
@@ -56,26 +38,23 @@ function wrap(fn, options) {
       return;
     }
 
-    var key = options.makeCacheKey.apply(null, arguments);
+    const key = makeCacheKey.apply(null, args);
     if (! key) {
-      return fn.apply(null, arguments);
+      return fn.apply(null, args);
     }
 
-    var args = [], len = arguments.length;
-    while (len--) args[len] = arguments[len];
-
-    var entry = cache.get(key);
+    let entry = cache.get(key);
     if (entry) {
       entry.args = args;
     } else {
       cache.set(key, entry = Entry.acquire(fn, key, args));
-      entry.subscribe = options.subscribe;
+      entry.subscribe = subscribe;
       if (disposable) {
         entry.reportOrphan = reportOrphan;
       }
     }
 
-    var value = entry.recompute();
+    const value = entry.recompute();
 
     // Move this entry to the front of the least-recently used queue,
     // since we just finished computing its value.
@@ -84,7 +63,7 @@ function wrap(fn, options) {
     // Clean up any excess entries in the cache, but only if this entry
     // has no parents, which means we're not in the middle of a larger
     // computation that might be flummoxed by the cleaning.
-    if (entry.parents.size === 0) {
+    if (entry.isOrphan()) {
       cache.clean();
     }
 
@@ -96,20 +75,12 @@ function wrap(fn, options) {
     }
   }
 
-  optimistic.dirty = function () {
-    var key = options.makeCacheKey.apply(null, arguments);
-    if (! key) {
-      return;
+  optimistic.dirty = function (...args: any[]) {
+    const key = makeCacheKey.apply(null, args);
+    if (key && cache.has(key)) {
+      (cache.get(key) as Entry).setDirty();
     }
-
-    if (! cache.has(key)) {
-      return;
-    }
-
-    cache.get(key).setDirty();
   };
 
-  return optimistic;
+  return optimistic as T & { dirty: T };
 }
-
-exports.wrap = wrap;
