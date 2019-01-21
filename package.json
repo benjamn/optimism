@@ -26,13 +26,16 @@
     "url": "https://github.com/benjamn/optimism/issues"
   },
   "scripts": {
-    "test": "mocha --reporter spec --full-trace test/tests.js"
+    "build": "tsc",
+    "mocha": "mocha --reporter spec --full-trace test/tests.js",
+    "test": "npm run build && npm run mocha"
   },
   "dependencies": {
     "immutable-tuple": "^0.4.10"
   },
   "devDependencies": {
     "fibers": "^3.0.0",
-    "mocha": "^5.0.0"
+    "mocha": "^5.0.0",
+    "typescript": "^3.2.4"
   }
 }
