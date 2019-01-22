@@ -28,6 +28,7 @@
   "scripts": {
     "build": "tsc",
     "mocha": "mocha --reporter spec --full-trace test/tests.js",
+    "prepublish": "npm run build",
     "test": "npm run build && npm run mocha"
   },
   "dependencies": {
