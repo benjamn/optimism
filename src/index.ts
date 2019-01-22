@@ -2,20 +2,42 @@ import { Cache } from "./cache";
 import { Entry } from "./entry";
 import { get as getLocal } from "./local";
 
+type AnyFn = (...args: any[]) => any;
+
 // Exported so that custom makeCacheKey functions can easily reuse the
 // default implementation (with different arguments).
-export const defaultMakeCacheKey: (...args: any[]) => any =
+export const defaultMakeCacheKey: AnyFn =
   require("immutable-tuple").tuple;
 
-export function wrap<T extends (...args: any[]) => any>(fn: T, {
-  max = Math.pow(2, 16),
-  makeCacheKey = defaultMakeCacheKey,
-  // If this wrapped function is disposable, then its creator does not
+export type OptimisticWrapperFunction<T extends AnyFn> = T & {
+  // The .dirty(...) method of an optimistic function takes exactly the
+  // same parameter types as the original function.
+  dirty: T;
+};
+
+export type OptimisticWrapOptions = {
+  // The maximum number of cache entries that should be retained before the
+  // cache begins evicting the oldest ones.
+  max: number;
+  // If a wrapped function is "disposable," then its creator does not
   // care about its return value, and it should be removed from the cache
   // immediately when it no longer has any parents that depend on it.
+  disposable: boolean;
+  // The makeCacheKey function takes the same arguments that were passed to
+  // the wrapper function and returns a single value that can be used as a key
+  // in a Map to identify the cached result.
+  makeCacheKey: AnyFn;
+  // If provided, the subscribe function should either return an unsubscribe
+  // function or return nothing.
+  subscribe?: (...args: any[]) => (() => any) | undefined;
+};
+
+export function wrap<T extends AnyFn>(originalFunction: T, {
+  max = Math.pow(2, 16),
   disposable = false,
-  subscribe = null,
-} = Object.create(null)) {
+  makeCacheKey = defaultMakeCacheKey,
+  subscribe,
+}: OptimisticWrapOptions = Object.create(null)) {
   const cache = new Cache<object, Entry>({
     max,
     dispose(_key, entry) {
@@ -40,14 +62,14 @@ export function wrap<T extends (...args: any[]) => any>(fn: T, {
 
     const key = makeCacheKey.apply(null, args);
     if (! key) {
-      return fn.apply(null, args);
+      return originalFunction.apply(null, args);
     }
 
     let entry = cache.get(key);
     if (entry) {
       entry.args = args;
     } else {
-      cache.set(key, entry = Entry.acquire(fn, key, args));
+      cache.set(key, entry = Entry.acquire(originalFunction, key, args));
       entry.subscribe = subscribe;
       if (disposable) {
         entry.reportOrphan = reportOrphan;
@@ -82,5 +104,5 @@ export function wrap<T extends (...args: any[]) => any>(fn: T, {
     }
   };
 
-  return optimistic as T & { dirty: T };
+  return optimistic as OptimisticWrapperFunction<T>;
 }

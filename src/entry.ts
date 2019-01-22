@@ -1,4 +1,5 @@
 import { get as getLocal } from "./local";
+import { OptimisticWrapOptions } from "./index";
 
 const UNKNOWN_VALUE = Object.create(null);
 const emptySetPool: Set<Entry>[] = [];
@@ -19,7 +20,7 @@ export class Entry {
   public static count = 0;
   public static POOL_TARGET_SIZE = 100;
 
-  public subscribe?: (...args: any[]) => any;
+  public subscribe: OptimisticWrapOptions["subscribe"];
   public unsubscribe?: () => any;
   public reportOrphan?: (entry: Entry) => any;
 
