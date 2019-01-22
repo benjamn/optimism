@@ -13,7 +13,7 @@ export class Cache<K = any, V = any> {
 
   constructor(options: {
     max?: number;
-    dispose?: (key: K, value: V) => void;
+    dispose?: (value: V, key: K) => void;
   } = {}) {
     if (typeof options.max === "number") {
       this.max = options.max;
@@ -111,7 +111,7 @@ export class Cache<K = any, V = any> {
       }
 
       this.map.delete(key);
-      this.dispose(key, entry.value);
+      this.dispose(entry.value, key);
 
       return true;
     }
@@ -119,5 +119,5 @@ export class Cache<K = any, V = any> {
     return false;
   }
 
-  dispose(key: K, value: V) {}
+  dispose(value: V, key: K) {}
 }

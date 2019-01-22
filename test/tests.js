@@ -445,7 +445,7 @@ describe("least-recently-used cache", function () {
     var evicted = [];
     var cache = new Cache({
       max: max,
-      dispose(key, value) {
+      dispose(value, key) {
         assert.strictEqual(String(key), value);
         evicted.push(key);
       }

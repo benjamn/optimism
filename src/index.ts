@@ -40,7 +40,7 @@ export function wrap<T extends AnyFn>(originalFunction: T, {
 }: OptimisticWrapOptions = Object.create(null)) {
   const cache = new Cache<object, Entry>({
     max,
-    dispose(_key, entry) {
+    dispose(entry) {
       entry.dispose();
     },
   });
