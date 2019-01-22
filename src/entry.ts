@@ -41,7 +41,6 @@ export class Entry {
     public key: any,
     public args: any[],
   ) {
-    this.reset(fn, key, args);
     ++Entry.count;
   }
 
