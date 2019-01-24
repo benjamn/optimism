@@ -18,15 +18,15 @@ export type OptimisticWrapperFunction<T extends AnyFn> = T & {
 export type OptimisticWrapOptions = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
-  max: number;
+  max?: number;
   // If a wrapped function is "disposable," then its creator does not
   // care about its return value, and it should be removed from the cache
   // immediately when it no longer has any parents that depend on it.
-  disposable: boolean;
+  disposable?: boolean;
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
-  makeCacheKey: AnyFn;
+  makeCacheKey?: AnyFn;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: any[]) => (() => any) | undefined;
