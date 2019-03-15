@@ -69,7 +69,7 @@ export function wrap<T extends AnyFn>(originalFunction: T, {
     if (entry) {
       entry.args = args;
     } else {
-      cache.set(key, entry = Entry.acquire(originalFunction, key, args));
+      cache.set(key, entry = new Entry(originalFunction, key, args));
       entry.subscribe = subscribe;
       if (disposable) {
         entry.reportOrphan = reportOrphan;

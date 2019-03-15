@@ -3,7 +3,6 @@ import { OptimisticWrapOptions } from "./index";
 
 const UNKNOWN_VALUE = Object.create(null);
 const emptySetPool: Set<Entry>[] = [];
-const entryPool: Entry[] = [];
 const reusableEmptyArray: Entry[] = [];
 
 // Since this package might be used browsers, we should avoid using the
@@ -44,37 +43,11 @@ export class Entry {
     ++Entry.count;
   }
 
-  private reset(fn: FnType, key: any, args: any[]) {
-    this.fn = fn;
-    this.key = key;
-    this.args = args;
-    this.value = UNKNOWN_VALUE;
-    this.dirty = true;
-    this.subscribe = void 0;
-    this.unsubscribe = void 0;
-    this.recomputing = false;
-    // Optional callback that will be invoked when entry.parents becomes
-    // empty. The Entry object is given as the first parameter. If the
-    // callback returns true, then this entry can be removed from the graph
-    // and safely recycled into the entryPool.
-    this.reportOrphan = void 0;
-  }
-
-  static acquire(fn: FnType, key: any, args: any[]) {
-    const entry = entryPool.pop();
-    if (entry) {
-      entry.reset(fn, key, args);
-      return entry;
-    }
-    return new Entry(fn, key, args);
-  }
-
   public recompute() {
     if (! this.rememberParent() && this.maybeReportOrphan()) {
       // The recipient of the entry.reportOrphan callback decided to dispose
-      // of this orphan entry by calling entry.dispos(), which recycles it
-      // into the entryPool, so we don't need to (and should not) proceed
-      // with the recomputation.
+      // of this orphan entry by calling entry.dispose(), so we don't need to
+      // (and should not) proceed with the recomputation.
       return;
     }
 
@@ -115,20 +88,6 @@ export class Entry {
       parent.setDirty();
       parent.forgetChild(this);
     });
-
-    // Since this entry has no parents and no children anymore, and the
-    // caller of Entry#dispose has indicated that entry.value no longer
-    // matters, we can safely recycle this Entry object for later use.
-    this.release();
-  }
-
-  private release() {
-    assert(this.parents.size === 0);
-    assert(this.childValues.size === 0);
-    assert(this.dirtyChildren === null);
-    if (entryPool.length < Entry.POOL_TARGET_SIZE) {
-      entryPool.push(this);
-    }
   }
 
   private rememberParent() {
@@ -340,7 +299,7 @@ export class Entry {
     }
 
     // After we forget all our children, this.dirtyChildren must be empty
-    // and therefor must have been reset to null.
+    // and therefore must have been reset to null.
     assert(this.dirtyChildren === null);
 
     return children;
