@@ -43,12 +43,12 @@ export class Entry<TArgs extends any[], TValue, TKey> {
     ++Entry.count;
   }
 
-  public recompute() {
+  public recompute(): TValue {
     if (! this.rememberParent() && this.maybeReportOrphan()) {
       // The recipient of the entry.reportOrphan callback decided to dispose
       // of this orphan entry by calling entry.dispose(), so we don't need to
       // (and should not) proceed with the recomputation.
-      return;
+      return void 0 as any;
     }
 
     return this.recomputeIfDirty();

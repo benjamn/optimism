@@ -65,14 +65,14 @@ export function wrap<
     return disposable && cache.delete(entry.key);
   }
 
-  function optimistic(...args: TArgs): TResult | undefined {
+  function optimistic(...args: TArgs): TResult {
     if (disposable && ! getLocal().currentParentEntry) {
       // If there's no current parent computation, and this wrapped
       // function is disposable (meaning we don't care about entry.value,
       // just dependency tracking), then we can short-cut everything else
       // in this function, because entry.recompute() is going to recycle
       // the entry object without recomputing anything, anyway.
-      return;
+      return void 0 as any;
     }
 
     const key = makeCacheKey.apply(null, args);
@@ -108,9 +108,7 @@ export function wrap<
     // If options.disposable is truthy, the caller of wrap is telling us
     // they don't care about the result of entry.recompute(), so we should
     // avoid returning the value, so it won't be accidentally used.
-    if (! disposable) {
-      return value;
-    }
+    return disposable ? void 0 as any : value;
   }
 
   optimistic.dirty = function (...args: TArgs) {
