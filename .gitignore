@@ -38,3 +38,6 @@ jspm_packages
 
 # Ignore generated TypeScript files.
 lib
+
+# Cache directory for rollup-plugin-typescript2
+.rpt2_cache

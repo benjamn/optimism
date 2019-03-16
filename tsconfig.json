@@ -4,6 +4,7 @@
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./lib",
+    "sourceMap": true,
     "declaration": true,
     "lib": ["es2015"],
     "types": ["node"],
