@@ -1,14 +1,23 @@
 import { Cache } from "./cache";
 import { Entry } from "./entry";
 import { get as getLocal } from "./local";
+import { KeyTrie } from "./key-trie";
 
-type AnyFn = (...args: any[]) => any;
+// Since the Cache uses a Map internally, any value or object reference can
+// be safely used as a key, though common types include object and string.
 export type TCacheKey = any;
 
-// Exported so that custom makeCacheKey functions can easily reuse the
-// default implementation (with different arguments).
-export const defaultMakeCacheKey: AnyFn =
-  require("immutable-tuple").tuple;
+// The defaultMakeCacheKey function is remarkably powerful, because it gives
+// a unique object for any shallow-identical list of arguments. If you need
+// to implement a custom makeCacheKey function, you may find it helpful to
+// delegate the final work to defaultMakeCacheKey, which is why we export it
+// here. However, you may want to avoid defaultMakeCacheKey if your runtime
+// does not support WeakMap, or you have the ability to return a string key.
+// In those cases, just write your own custom makeCacheKey functions.
+const keyTrie = new KeyTrie<TCacheKey>();
+export function defaultMakeCacheKey(...args: any[]) {
+  return keyTrie.lookup(args);
+}
 
 export type OptimisticWrapperFunction<
   TArgs extends any[],

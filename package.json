@@ -31,9 +31,6 @@
     "prepublish": "npm run build",
     "test": "npm run build && npm run mocha"
   },
-  "dependencies": {
-    "immutable-tuple": "^0.4.10"
-  },
   "devDependencies": {
     "@types/node": "^10.12.18",
     "fibers": "^3.0.0",
