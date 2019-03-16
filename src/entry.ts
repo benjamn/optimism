@@ -167,7 +167,7 @@ export class Entry {
     if (this.mightBeDirty()) {
       // Get fresh values for any dirty children, and if those values
       // disagree with this.childValues, mark this Entry explicitly dirty.
-      (this.dirtyChildren as Set<Entry>).forEach(child => {
+      this.dirtyChildren!.forEach(child => {
         assert(this.childValues.has(child));
         try {
           child.recomputeIfDirty();

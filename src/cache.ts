@@ -47,7 +47,7 @@ export class Cache<K = any, V = any> {
       }
 
       entry.older = this.newest;
-      (entry.older as Entry<K, V>).newer = entry;
+      entry.older!.newer = entry;
 
       entry.newer = null;
       this.newest = entry;
