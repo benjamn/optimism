@@ -1,38 +1,32 @@
-interface Entry<K, V> {
+interface Node<K, V> {
   key: K;
   value: V;
-  newer: Entry<K, V> | null;
-  older: Entry<K, V> | null;
+  newer: Node<K, V> | null;
+  older: Node<K, V> | null;
 }
 
+function defaultDispose() {}
+
 export class Cache<K = any, V = any> {
-  private map = new Map<K, Entry<K, V>>();
-  private newest: Entry<K, V> | null = null;
-  private oldest: Entry<K, V> | null = null;
-  private max: number = Infinity;
+  private map = new Map<K, Node<K, V>>();
+  private newest: Node<K, V> | null = null;
+  private oldest: Node<K, V> | null = null;
 
-  constructor(options: {
-    max?: number;
-    dispose?: (value: V, key: K) => void;
-  } = {}) {
-    if (typeof options.max === "number") {
-      this.max = options.max;
-    }
-    if (typeof options.dispose === "function") {
-      this.dispose = options.dispose;
-    }
-  }
+  constructor(
+    private max = Infinity,
+    public dispose: (value: V, key: K) => void = defaultDispose,
+  ) {}
 
-  has(key: K) {
+  public has(key: K) {
     return this.map.has(key);
   }
 
-  get(key: K) {
+  public get(key: K) {
     const entry = this.getEntry(key);
     return entry && entry.value;
   }
 
-  private getEntry(key: K): Entry<K, V> | void {
+  private getEntry(key: K): Node<K, V> | void {
     const entry = this.map.get(key);
 
     if (entry && entry !== this.newest) {
@@ -60,7 +54,7 @@ export class Cache<K = any, V = any> {
     return entry;
   }
 
-  set(key: K, value: V) {
+  public set(key: K, value: V) {
     let entry = this.getEntry(key);
     if (entry) {
       return entry.value = value;
@@ -85,13 +79,13 @@ export class Cache<K = any, V = any> {
     return entry.value;
   }
 
-  clean() {
+  public clean() {
     while (this.oldest && this.map.size > this.max) {
       this.delete(this.oldest.key);
     }
   }
 
-  delete(key: K) {
+  public delete(key: K) {
     const entry = this.map.get(key);
     if (entry) {
       if (entry === this.newest) {
@@ -118,6 +112,4 @@ export class Cache<K = any, V = any> {
 
     return false;
   }
-
-  dispose(value: V, key: K) {}
 }

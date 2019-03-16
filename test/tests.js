@@ -443,12 +443,9 @@ describe("least-recently-used cache", function () {
   it("evicts excess old elements", function () {
     var max = 10;
     var evicted = [];
-    var cache = new Cache({
-      max: max,
-      dispose(value, key) {
-        assert.strictEqual(String(key), value);
-        evicted.push(key);
-      }
+    var cache = new Cache(max, (value, key) => {
+      assert.strictEqual(String(key), value);
+      evicted.push(key);
     });
 
     var count = 100;
@@ -469,7 +466,7 @@ describe("least-recently-used cache", function () {
   });
 
   it("can cope with small max values", function () {
-    var cache = new Cache({ max: 2 });
+    var cache = new Cache(2);
 
     function check() {
       cache.clean();

@@ -1,8 +1,8 @@
-import { Entry } from "./entry";
+import { AnyEntry } from "./entry";
 
 const localKey = "_optimism_local";
 const fakeNullFiber = new (class Fiber {
-  [localKey]: { currentParentEntry: Entry };
+  [localKey]: { currentParentEntry: AnyEntry };
 });
 
 let getCurrentFiber = () => fakeNullFiber;

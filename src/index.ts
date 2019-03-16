@@ -3,19 +3,23 @@ import { Entry } from "./entry";
 import { get as getLocal } from "./local";
 
 type AnyFn = (...args: any[]) => any;
+export type TCacheKey = any;
 
 // Exported so that custom makeCacheKey functions can easily reuse the
 // default implementation (with different arguments).
 export const defaultMakeCacheKey: AnyFn =
   require("immutable-tuple").tuple;
 
-export type OptimisticWrapperFunction<T extends AnyFn> = T & {
+export type OptimisticWrapperFunction<
+  TArgs extends any[],
+  TResult,
+> = ((...args: TArgs) => TResult) & {
   // The .dirty(...) method of an optimistic function takes exactly the
   // same parameter types as the original function.
-  dirty: T;
+  dirty: (...args: TArgs) => void;
 };
 
-export type OptimisticWrapOptions = {
+export type OptimisticWrapOptions<TArgs extends any[]> = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
   max?: number;
@@ -26,31 +30,33 @@ export type OptimisticWrapOptions = {
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
-  makeCacheKey?: AnyFn;
+  makeCacheKey?: (...args: TArgs) => TCacheKey;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
-  subscribe?: (...args: any[]) => (() => any) | undefined;
+  subscribe?: (...args: TArgs) => (() => any) | undefined;
 };
 
-export function wrap<T extends AnyFn>(originalFunction: T, {
-  max = Math.pow(2, 16),
-  disposable = false,
-  makeCacheKey = defaultMakeCacheKey,
-  subscribe,
-}: OptimisticWrapOptions = Object.create(null)) {
-  const cache = new Cache<object, Entry>({
-    max,
-    dispose(entry) {
-      entry.dispose();
-    },
-  });
+export function wrap<
+  TArgs extends any[],
+  TResult,
+>(
+  originalFunction: (...args: TArgs) => TResult,
+  options: OptimisticWrapOptions<TArgs> = Object.create(null),
+) {
+  const cache = new Cache<TCacheKey, Entry<TArgs, TResult, TCacheKey>>(
+    options.max || Math.pow(2, 16),
+    entry => entry.dispose(),
+  );
 
-  function reportOrphan(entry: Entry) {
+  const disposable = !! options.disposable;
+  const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
+
+  function reportOrphan(entry: Entry<TArgs, TResult, TCacheKey>) {
     // Triggers the entry.dispose() call above.
     return disposable && cache.delete(entry.key);
   }
 
-  function optimistic(...args: any[]): any {
+  function optimistic(...args: TArgs): TResult | undefined {
     if (disposable && ! getLocal().currentParentEntry) {
       // If there's no current parent computation, and this wrapped
       // function is disposable (meaning we don't care about entry.value,
@@ -69,8 +75,9 @@ export function wrap<T extends AnyFn>(originalFunction: T, {
     if (entry) {
       entry.args = args;
     } else {
-      cache.set(key, entry = new Entry(originalFunction, key, args));
-      entry.subscribe = subscribe;
+      entry = new Entry<TArgs, TResult, TCacheKey>(originalFunction, args, key);
+      cache.set(key, entry);
+      entry.subscribe = options.subscribe;
       if (disposable) {
         entry.reportOrphan = reportOrphan;
       }
@@ -97,12 +104,13 @@ export function wrap<T extends AnyFn>(originalFunction: T, {
     }
   }
 
-  optimistic.dirty = function (...args: any[]) {
+  optimistic.dirty = function (...args: TArgs) {
     const key = makeCacheKey.apply(null, args);
-    if (key && cache.has(key)) {
-      (cache.get(key) as Entry).setDirty();
+    const child = key && cache.get(key);
+    if (child) {
+      child.setDirty();
     }
   };
 
-  return optimistic as OptimisticWrapperFunction<T>;
+  return optimistic as OptimisticWrapperFunction<TArgs, TResult>;
 }

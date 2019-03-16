@@ -2,8 +2,8 @@ import { get as getLocal } from "./local";
 import { OptimisticWrapOptions } from "./index";
 
 const UNKNOWN_VALUE = Object.create(null);
-const emptySetPool: Set<Entry>[] = [];
-const reusableEmptyArray: Entry[] = [];
+const emptySetPool: Set<AnyEntry>[] = [];
+const reusableEmptyArray: AnyEntry[] = [];
 
 // Since this package might be used browsers, we should avoid using the
 // Node built-in assert module.
@@ -13,32 +13,32 @@ function assert(condition: any, optionalMessage?: string) {
   }
 }
 
-type FnType = (...args: any[]) => any;
+export type AnyEntry = Entry<any, any, any>;
 
-export class Entry {
+export class Entry<TArgs extends any[], TValue, TKey> {
   public static count = 0;
   public static POOL_TARGET_SIZE = 100;
 
-  public subscribe: OptimisticWrapOptions["subscribe"];
+  public subscribe: OptimisticWrapOptions<TArgs>["subscribe"];
   public unsubscribe?: () => any;
-  public reportOrphan?: (entry: Entry) => any;
+  public reportOrphan?: (entry: Entry<TArgs, TValue, TKey>) => any;
 
-  private parents = new Set<Entry>();
-  private childValues = new Map<Entry, any>();
+  private parents = new Set<AnyEntry>();
+  private childValues = new Map<AnyEntry, any>();
 
   // When this Entry has children that are dirty, this property becomes
   // a Set containing other Entry objects, borrowed from emptySetPool.
   // When the set becomes empty, it gets recycled back to emptySetPool.
-  private dirtyChildren: Set<Entry> | null = null;
+  private dirtyChildren: Set<AnyEntry> | null = null;
 
   private dirty = true;
   private recomputing = false;
-  private value: any;
+  private value: TValue = UNKNOWN_VALUE;
 
   constructor(
-    public fn: FnType,
-    public key: any,
-    public args: any[],
+    public readonly fn: (...args: TArgs) => TValue,
+    public args: Readonly<TArgs>,
+    public readonly key: TKey,
   ) {
     ++Entry.count;
   }
@@ -217,7 +217,7 @@ export class Entry {
   }
 
   // Let a parent Entry know that one of its children may be dirty.
-  private reportDirtyChild(child: Entry) {
+  private reportDirtyChild(child: AnyEntry) {
     // Must have called rememberParent(child) before calling
     // reportDirtyChild(parent, child).
     assert(this.childValues.has(child));
@@ -238,7 +238,7 @@ export class Entry {
   }
 
   // Let a parent Entry know that one of its children is no longer dirty.
-  private reportCleanChild(child: Entry) {
+  private reportCleanChild(child: AnyEntry) {
     // Must have called rememberChild(child) before calling
     // reportCleanChild(parent, child).
     assert(this.childValues.has(child));
@@ -260,7 +260,7 @@ export class Entry {
     this.reportClean();
   }
 
-  private removeDirtyChild(child: Entry) {
+  private removeDirtyChild(child: AnyEntry) {
     const dc = this.dirtyChildren;
     if (dc) {
       dc.delete(child);
@@ -305,7 +305,7 @@ export class Entry {
     return children;
   }
 
-  private forgetChild(child: Entry) {
+  private forgetChild(child: AnyEntry) {
     child.parents.delete(this);
     this.childValues.delete(child);
     this.removeDirtyChild(child);
