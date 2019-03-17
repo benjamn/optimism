@@ -52,18 +52,13 @@ export function wrap<
   originalFunction: (...args: TArgs) => TResult,
   options: OptimisticWrapOptions<TArgs> = Object.create(null),
 ) {
-  const cache = new Cache<TCacheKey, Entry<TArgs, TResult, TCacheKey>>(
+  const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
     options.max || Math.pow(2, 16),
     entry => entry.dispose(),
   );
 
   const disposable = !! options.disposable;
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
-
-  function reportOrphan(entry: Entry<TArgs, TResult, TCacheKey>) {
-    // Triggers the entry.dispose() call above.
-    return disposable && cache.delete(entry.key);
-  }
 
   function optimistic(...args: TArgs): TResult {
     if (disposable && ! getLocal().currentParentEntry) {
@@ -84,11 +79,11 @@ export function wrap<
     if (entry) {
       entry.args = args;
     } else {
-      entry = new Entry<TArgs, TResult, TCacheKey>(originalFunction, args, key);
+      entry = new Entry<TArgs, TResult>(originalFunction, args);
       cache.set(key, entry);
       entry.subscribe = options.subscribe;
       if (disposable) {
-        entry.reportOrphan = reportOrphan;
+        entry.reportOrphan = () => cache.delete(key);
       }
     }
 

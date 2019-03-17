@@ -13,15 +13,15 @@ function assert(condition: any, optionalMessage?: string) {
   }
 }
 
-export type AnyEntry = Entry<any, any, any>;
+export type AnyEntry = Entry<any, any>;
 
-export class Entry<TArgs extends any[], TValue, TKey> {
+export class Entry<TArgs extends any[], TValue> {
   public static count = 0;
   public static POOL_TARGET_SIZE = 100;
 
   public subscribe: OptimisticWrapOptions<TArgs>["subscribe"];
   public unsubscribe?: () => any;
-  public reportOrphan?: (entry: Entry<TArgs, TValue, TKey>) => any;
+  public reportOrphan?: (this: Entry<TArgs, TValue>) => any;
 
   public readonly parents = new Set<AnyEntry>();
   public readonly childValues = new Map<AnyEntry, any>();
@@ -38,7 +38,6 @@ export class Entry<TArgs extends any[], TValue, TKey> {
   constructor(
     public readonly fn: (...args: TArgs) => TValue,
     public args: TArgs,
-    public readonly key: TKey,
   ) {
     ++Entry.count;
   }
@@ -280,10 +279,9 @@ function removeDirtyChild(parent: AnyEntry, child: AnyEntry) {
 // has been called, and the entry has been removed from any other caches
 // (see index.js for the only current example).
 function maybeReportOrphan(entry: AnyEntry) {
-  const report = entry.reportOrphan;
-  return typeof report === "function" &&
-    entry.parents.size === 0 &&
-    report(entry) === true;
+  return entry.parents.size === 0 &&
+    typeof entry.reportOrphan === "function" &&
+    entry.reportOrphan() === true;
 }
 
 // Removes all children from this entry and returns an array of the
