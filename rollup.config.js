@@ -5,7 +5,7 @@ const globals = {
   __proto__: null,
   tslib: "tslib",
   assert: "assert",
-  crypto: "crypto",
+  crypto: "crypto"
 };
 
 function external(id) {
@@ -20,14 +20,14 @@ function build(input, output, format) {
       file: output,
       format,
       sourcemap: true,
-      globals,
+      globals
     },
     plugins: [
       typescriptPlugin({
         typescript,
-        tsconfig: "./tsconfig.rollup.json",
-      }),
-    ],
+        tsconfig: "./tsconfig.rollup.json"
+      })
+    ]
   }
 }
 
@@ -35,11 +35,11 @@ export default [
   build(
     "src/index.ts",
     "lib/bundle.esm.js",
-    "esm",
+    "esm"
   ),
   build(
     "src/tests/main.ts",
     "lib/tests/bundle.js",
-    "cjs",
-  ),
+    "cjs"
+  )
 ];
