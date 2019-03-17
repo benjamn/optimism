@@ -1,3 +1,7 @@
-import "./api";
-import "./cache";
-import "./performance";
+describe("compiled by tsc", function () {
+  require("./main");
+});
+
+describe("bundled by rollup", function () {
+  require("./bundle");
+});

@@ -12,19 +12,34 @@ function external(id) {
   return id in globals;
 }
 
-export default [{
-  input: "src/index.ts",
-  external,
-  output: {
-    file: "lib/bundle.esm.js",
-    format: "esm",
-    sourcemap: true,
-    globals,
-  },
-  plugins: [
-    typescriptPlugin({
-      typescript,
-      tsconfig: "./tsconfig.rollup.json",
-    }),
-  ],
-}];
+function build(input, output, format) {
+  return {
+    input,
+    external,
+    output: {
+      file: output,
+      format,
+      sourcemap: true,
+      globals,
+    },
+    plugins: [
+      typescriptPlugin({
+        typescript,
+        tsconfig: "./tsconfig.rollup.json",
+      }),
+    ],
+  }
+}
+
+export default [
+  build(
+    "src/index.ts",
+    "lib/bundle.esm.js",
+    "esm",
+  ),
+  build(
+    "src/tests/main.ts",
+    "lib/tests/bundle.js",
+    "cjs",
+  ),
+];

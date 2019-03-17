@@ -28,7 +28,7 @@
   },
   "scripts": {
     "build": "tsc && rollup -c",
-    "mocha": "mocha --reporter spec --full-trace lib/tests",
+    "mocha": "mocha --reporter spec --full-trace lib/tests/index",
     "prepublish": "npm run build",
     "test": "npm run build && npm run mocha"
   },
