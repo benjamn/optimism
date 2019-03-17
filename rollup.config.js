@@ -4,6 +4,8 @@ import typescript from 'typescript';
 const globals = {
   __proto__: null,
   tslib: "tslib",
+  assert: "assert",
+  crypto: "crypto",
 };
 
 function external(id) {
