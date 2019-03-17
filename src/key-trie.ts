@@ -10,9 +10,13 @@ export class KeyTrie<K> {
 
   constructor(private readonly weakness: boolean) {}
 
-  public lookup<T extends any[]>(tuple: T): K {
+  public lookup<T extends any[]>(...array: T): K {
+    return this.lookupArray(array);
+  }
+
+  public lookupArray<T extends any[]>(array: T): K {
     let node: KeyTrie<K> = this;
-    tuple.forEach(key => node = node.getChildTrie(key));
+    array.forEach(key => node = node.getChildTrie(key));
     return node.data || (node.data = Object.create(null));
   }
 

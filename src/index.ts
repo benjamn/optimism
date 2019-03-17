@@ -16,7 +16,7 @@ export type TCacheKey = any;
 // In those cases, just write your own custom makeCacheKey functions.
 const keyTrie = new KeyTrie<TCacheKey>(true);
 export function defaultMakeCacheKey(...args: any[]) {
-  return keyTrie.lookup(args);
+  return keyTrie.lookupArray(args);
 }
 
 // If you're paranoid about memory leaks, or you want to avoid using WeakMap

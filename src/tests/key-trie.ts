@@ -11,13 +11,13 @@ describe("KeyTrie", function () {
     assert.strictEqual((trie as any).weakness, true);
     const obj1 = {};
     assert.strictEqual(
-      trie.lookup([obj1, 2, 3]),
-      trie.lookup([obj1, 2, 3]),
+      trie.lookup(obj1, 2, 3),
+      trie.lookup(obj1, 2, 3),
     );
     const obj2 = {};
     assert.notStrictEqual(
-      trie.lookup([1, obj2]),
-      trie.lookup([1, obj2, 3]),
+      trie.lookup(1, obj2),
+      trie.lookup(1, obj2, 3),
     );
     assert.strictEqual((trie as any).weak.has(obj1), true);
     assert.strictEqual((trie as any).strong.has(obj1), false);
@@ -30,13 +30,13 @@ describe("KeyTrie", function () {
     assert.strictEqual((trie as any).weakness, false);
     const obj1 = {};
     assert.strictEqual(
-      trie.lookup([obj1, 2, 3]),
-      trie.lookup([obj1, 2, 3]),
+      trie.lookup(obj1, 2, 3),
+      trie.lookup(obj1, 2, 3),
     );
     const obj2 = {};
     assert.notStrictEqual(
-      trie.lookup([1, obj2]),
-      trie.lookup([1, obj2, 3]),
+      trie.lookup(1, obj2),
+      trie.lookup(1, obj2, 3),
     );
     assert.strictEqual(typeof (trie as any).weak, "undefined");
     assert.strictEqual((trie as any).strong.has(obj1), true);
