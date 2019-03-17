@@ -4,9 +4,11 @@ export class KeyTrie<K> {
   // Since a `WeakMap` cannot hold primitive values as keys, we need a
   // backup `Map` instance to hold primitive keys. Both `this._weakMap`
   // and `this._strongMap` are lazily initialized.
-  private weak: WeakMap<any, KeyTrie<K>> | null = null;
-  private strong: Map<any, KeyTrie<K>> | null = null;
-  private data: K | null = null;
+  private weak?: WeakMap<any, KeyTrie<K>>;
+  private strong?: Map<any, KeyTrie<K>>;
+  private data?: K;
+
+  constructor(private readonly weakness: boolean) {}
 
   public lookup<T extends any[]>(tuple: T): K {
     let node: KeyTrie<K> = this;
@@ -15,11 +17,11 @@ export class KeyTrie<K> {
   }
 
   private getChildTrie(key: any) {
-    const map = isObjRef(key)
+    const map = this.weakness && isObjRef(key)
       ? this.weak || (this.weak = new WeakMap<any, KeyTrie<K>>())
       : this.strong || (this.strong = new Map<any, KeyTrie<K>>());
     let child = map.get(key);
-    if (!child) map.set(key, child = new KeyTrie<K>());
+    if (!child) map.set(key, child = new KeyTrie<K>(this.weakness));
     return child;
   }
 }

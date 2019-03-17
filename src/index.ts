@@ -14,10 +14,15 @@ export type TCacheKey = any;
 // here. However, you may want to avoid defaultMakeCacheKey if your runtime
 // does not support WeakMap, or you have the ability to return a string key.
 // In those cases, just write your own custom makeCacheKey functions.
-const keyTrie = new KeyTrie<TCacheKey>();
+const keyTrie = new KeyTrie<TCacheKey>(true);
 export function defaultMakeCacheKey(...args: any[]) {
   return keyTrie.lookup(args);
 }
+
+// If you're paranoid about memory leaks, or you want to avoid using WeakMap
+// under the hood, but you still need the behavior of defaultMakeCacheKey,
+// import this constructor to create your own tries.
+export { KeyTrie }
 
 export type OptimisticWrapperFunction<
   TArgs extends any[],
