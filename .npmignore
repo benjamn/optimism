@@ -1,4 +1,8 @@
 /node_modules
 /src
 /lib/tests
+.travis.yml
 .rpt2_cache
+tsconfig.json
+tsconfig.rollup.json
+rollup.config.js
