@@ -3,6 +3,19 @@ import { Entry } from "./entry";
 import { getParentEntry } from "./context";
 import { KeyTrie } from "./key-trie";
 
+// These helper functions are important for making optimism work with
+// asynchronous code. In order to register parent-child dependencies,
+// optimism needs to know about any currently active parent computations.
+// In ordinary synchronous code, the parent context is implicit in the
+// execution stack, but asynchronous code requires some extra guidance in
+// order to propagate context from one async task segment to the next.
+export {
+  bindContext,
+  noContext,
+  setTimeout,
+  asyncFromGen,
+} from "./context";
+
 // Since the Cache uses a Map internally, any value or object reference can
 // be safely used as a key, though common types include object and string.
 export type TCacheKey = any;

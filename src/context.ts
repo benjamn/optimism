@@ -24,10 +24,13 @@ export function withEntry<TResult>(
   }
 }
 
+// Immediately run a callback function without any captured context.
 export function noContext<TResult>(callback: () => TResult) {
   return withEntry(callback, null);
 }
 
+// Capture the current context and wrap a callback function so that it
+// reestablishes the captured context when called.
 export function bindContext<TArgs extends any[], TResult>(
   callback: (...args: TArgs) => TResult,
 ) {
@@ -43,6 +46,7 @@ export function bindContext<TArgs extends any[], TResult>(
   } as typeof callback;
 }
 
+// Like global.setTimeout, except the callback runs with captured context.
 export { setTimeoutWithContext as setTimeout };
 function setTimeoutWithContext(callback: () => any, delay: number) {
   return setTimeout(bindContext(callback), delay);
@@ -52,6 +56,8 @@ function isPromiseLike(value: any): value is PromiseLike<any> {
   return value && typeof value.then === "function";
 }
 
+// Turn any generator function into an async function (using yield instead
+// of await), with context automatically preserved across yields.
 export function asyncFromGen<TArgs extends any[], TResult>(
   genFn: (...args: TArgs) => IterableIterator<TResult>,
 ) {
