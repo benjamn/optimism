@@ -65,7 +65,7 @@ export function wrap<
   const disposable = !! options.disposable;
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
-  function optimistic(...args: TArgs): TResult {
+  function optimistic(): TResult {
     if (disposable && ! getLocal().currentParentEntry) {
       // If there's no current parent computation, and this wrapped
       // function is disposable (meaning we don't care about entry.value,
@@ -75,10 +75,12 @@ export function wrap<
       return void 0 as any;
     }
 
-    const key = makeCacheKey.apply(null, args);
+    const key = makeCacheKey.apply(null, arguments as any);
     if (! key) {
-      return originalFunction.apply(null, args);
+      return originalFunction.apply(null, arguments as any);
     }
+
+    const args = Array.prototype.slice.call(arguments) as TArgs;
 
     let entry = cache.get(key);
     if (entry) {
@@ -111,8 +113,8 @@ export function wrap<
     return disposable ? void 0 as any : value;
   }
 
-  optimistic.dirty = function (...args: TArgs) {
-    const key = makeCacheKey.apply(null, args);
+  optimistic.dirty = function () {
+    const key = makeCacheKey.apply(null, arguments as any);
     const child = key && cache.get(key);
     if (child) {
       child.setDirty();
