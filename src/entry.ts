@@ -2,8 +2,9 @@ import { get as getLocal } from "./local";
 import { OptimisticWrapOptions } from "./index";
 
 const UNKNOWN_VALUE = Object.create(null);
-const emptySetPool: Set<AnyEntry>[] = [];
 const reusableEmptyArray: AnyEntry[] = [];
+const emptySetPool: Set<AnyEntry>[] = [];
+const POOL_TARGET_SIZE = 100;
 
 // Since this package might be used browsers, we should avoid using the
 // Node built-in assert module.
@@ -17,7 +18,6 @@ export type AnyEntry = Entry<any, any>;
 
 export class Entry<TArgs extends any[], TValue> {
   public static count = 0;
-  public static POOL_TARGET_SIZE = 100;
 
   public subscribe: OptimisticWrapOptions<TArgs>["subscribe"];
   public unsubscribe?: () => any;
@@ -261,7 +261,7 @@ function removeDirtyChild(parent: AnyEntry, child: AnyEntry) {
   if (dc) {
     dc.delete(child);
     if (dc.size === 0) {
-      if (emptySetPool.length < Entry.POOL_TARGET_SIZE) {
+      if (emptySetPool.length < POOL_TARGET_SIZE) {
         emptySetPool.push(dc);
       }
       parent.dirtyChildren = null;
