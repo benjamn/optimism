@@ -5,6 +5,7 @@ import {
   defaultMakeCacheKey,
   OptimisticWrapperFunction,
 } from "../index";
+import { noContext } from '../context';
 
 type NumThunk = OptimisticWrapperFunction<[], number>;
 
@@ -127,6 +128,11 @@ describe("optimism", function () {
 
   it("is not confused by fibers", function () {
     const Fiber = require("fibers");
+    const originalYield = Fiber.yield;
+    Fiber.yield = (...args: any[]) => {
+      return noContext(() => originalYield.apply(Fiber, args));
+    };
+
     const order = [];
     let result1 = "one";
     let result2 = "two";

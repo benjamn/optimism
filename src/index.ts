@@ -1,6 +1,6 @@
 import { Cache } from "./cache";
 import { Entry } from "./entry";
-import { get as getLocal } from "./local";
+import { getParentEntry } from "./context";
 import { KeyTrie } from "./key-trie";
 
 // Since the Cache uses a Map internally, any value or object reference can
@@ -66,7 +66,7 @@ export function wrap<
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
   function optimistic(): TResult {
-    if (disposable && ! getLocal().currentParentEntry) {
+    if (disposable && ! getParentEntry()) {
       // If there's no current parent computation, and this wrapped
       // function is disposable (meaning we don't care about entry.value,
       // just dependency tracking), then we can short-cut everything else

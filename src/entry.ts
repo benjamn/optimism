@@ -1,4 +1,4 @@
-import { get as getLocal } from "./local";
+import { getParentEntry, withEntry } from "./context";
 import { OptimisticWrapOptions } from "./index";
 
 const UNKNOWN_VALUE = Object.create(null);
@@ -87,8 +87,7 @@ export class Entry<TArgs extends any[], TValue> {
 }
 
 function rememberParent(child: AnyEntry) {
-  const local = getLocal();
-  const parent = local.currentParentEntry;
+  const parent = getParentEntry();
   if (parent) {
     child.parents.add(parent);
 
@@ -152,20 +151,15 @@ function reallyRecompute(entry: AnyEntry) {
   // maybeReportOrphan until after the recomputation finishes.
   const originalChildren = forgetChildren(entry);
 
-  const local = getLocal();
-  const parent = local.currentParentEntry;
-  local.currentParentEntry = entry;
-
   let threw = true;
   try {
-    entry.value = entry.fn.apply(null, entry.args);
+    withEntry(() => {
+      entry.value = entry.fn.apply(null, entry.args);
+    }, entry);
     threw = false;
 
   } finally {
     entry.recomputing = false;
-
-    assert(local.currentParentEntry === entry);
-    local.currentParentEntry = parent;
 
     if (threw || ! maybeSubscribe(entry)) {
       // Mark this Entry dirty if entry.fn threw or we failed to
