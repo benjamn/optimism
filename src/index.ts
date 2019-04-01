@@ -14,7 +14,7 @@ export type TCacheKey = any;
 // here. However, you may want to avoid defaultMakeCacheKey if your runtime
 // does not support WeakMap, or you have the ability to return a string key.
 // In those cases, just write your own custom makeCacheKey functions.
-const keyTrie = new KeyTrie<TCacheKey>(true);
+const keyTrie = new KeyTrie<TCacheKey>(typeof WeakMap === "function");
 export function defaultMakeCacheKey(...args: any[]) {
   return keyTrie.lookupArray(args);
 }
