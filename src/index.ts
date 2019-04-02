@@ -98,10 +98,10 @@ export function wrap<
     // since we just finished computing its value.
     cache.set(key, entry);
 
-    // Clean up any excess entries in the cache, but only if this entry
-    // has no parents, which means we're not in the middle of a larger
+    // Clean up any excess entries in the cache, but only if there is no
+    // active parent entry, meaning we're not in the middle of a larger
     // computation that might be flummoxed by the cleaning.
-    if (entry.isOrphan()) {
+    if (!getParentEntry()) {
       cache.clean();
     }
 

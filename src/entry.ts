@@ -53,10 +53,6 @@ export class Entry<TArgs extends any[], TValue> {
     return recomputeIfDirty(this);
   }
 
-  public isOrphan() {
-    return this.parents.size === 0;
-  }
-
   public setDirty() {
     if (this.dirty) return;
     this.dirty = true;
