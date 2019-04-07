@@ -1,6 +1,6 @@
 import { Cache } from "./cache";
 import { Entry } from "./entry";
-import { getParentEntry } from "./context";
+import { parentEntrySlot } from "./context";
 import { KeyTrie } from "./key-trie";
 
 // These helper functions are important for making optimism work with
@@ -79,7 +79,7 @@ export function wrap<
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
   function optimistic(): TResult {
-    if (disposable && ! getParentEntry()) {
+    if (disposable && ! parentEntrySlot.hasValue()) {
       // If there's no current parent computation, and this wrapped
       // function is disposable (meaning we don't care about entry.value,
       // just dependency tracking), then we can short-cut everything else
@@ -116,7 +116,7 @@ export function wrap<
     // Clean up any excess entries in the cache, but only if there is no
     // active parent entry, meaning we're not in the middle of a larger
     // computation that might be flummoxed by the cleaning.
-    if (!getParentEntry()) {
+    if (! parentEntrySlot.hasValue()) {
       cache.clean();
     }
 

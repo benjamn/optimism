@@ -42,5 +42,8 @@
     "rollup": "^1.6.0",
     "rollup-plugin-typescript2": "^0.20.1",
     "typescript": "^3.3.3333"
+  },
+  "dependencies": {
+    "@wry/context": "^0.2.1"
   }
 }

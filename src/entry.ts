@@ -1,4 +1,4 @@
-import { getParentEntry, withEntry } from "./context";
+import { parentEntrySlot } from "./context";
 import { OptimisticWrapOptions } from "./index";
 
 const UNKNOWN_VALUE = Object.create(null);
@@ -87,7 +87,7 @@ export class Entry<TArgs extends any[], TValue> {
 }
 
 function rememberParent(child: AnyEntry) {
-  const parent = getParentEntry();
+  const parent = parentEntrySlot.getValue();
   if (parent) {
     child.parents.add(parent);
 
@@ -153,9 +153,9 @@ function reallyRecompute(entry: AnyEntry) {
 
   let threw = true;
   try {
-    withEntry(() => {
+    parentEntrySlot.withValue(entry, () => {
       entry.value = entry.fn.apply(null, entry.args);
-    }, entry);
+    });
     threw = false;
 
   } finally {

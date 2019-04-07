@@ -5,7 +5,8 @@ const globals = {
   __proto__: null,
   tslib: "tslib",
   assert: "assert",
-  crypto: "crypto"
+  crypto: "crypto",
+  "@wry/context": "wryContext"
 };
 
 function external(id) {
