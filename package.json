@@ -44,6 +44,6 @@
     "typescript": "^3.3.3333"
   },
   "dependencies": {
-    "@wry/context": "^0.2.2"
+    "@wry/context": "^0.3.0"
   }
 }
