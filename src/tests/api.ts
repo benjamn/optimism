@@ -6,6 +6,7 @@ import {
   OptimisticWrapperFunction,
 } from "../index";
 import { noContext } from '../context';
+import { wrapYieldingFiberMethods } from '@wry/context';
 
 type NumThunk = OptimisticWrapperFunction<[], number>;
 
@@ -127,11 +128,7 @@ describe("optimism", function () {
   });
 
   it("is not confused by fibers", function () {
-    const Fiber = require("fibers");
-    const originalYield = Fiber.yield;
-    Fiber.yield = (...args: any[]) => {
-      return noContext(() => originalYield.apply(Fiber, args));
-    };
+    const Fiber = wrapYieldingFiberMethods(require("fibers"));
 
     const order = [];
     let result1 = "one";
