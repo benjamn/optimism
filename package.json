@@ -29,7 +29,7 @@
   "scripts": {
     "build": "npm run clean && tsc && rollup -c",
     "clean": "rimraf lib",
-    "mocha": "mocha --reporter spec --full-trace lib/tests/index",
+    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace lib/tests/index",
     "prepublish": "npm run build",
     "test": "npm run build && npm run mocha"
   },
@@ -41,6 +41,7 @@
     "rimraf": "^2.6.3",
     "rollup": "^1.6.0",
     "rollup-plugin-typescript2": "^0.20.1",
+    "source-map-support": "^0.5.12",
     "typescript": "^3.3.3333"
   },
   "dependencies": {
