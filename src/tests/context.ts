@@ -46,6 +46,20 @@ describe("asyncFromGen", function () {
     } catch (thrown) {
       assert.strictEqual(thrown, "oyez");
     }
+
+    const catcher = asyncFromGen(function*() {
+      try {
+        yield Promise.reject(new Error("expected"));
+        throw new Error("not reached");
+      } catch (error) {
+        assert.strictEqual(error.message, "expected");
+      }
+      return "ok";
+    });
+
+    return catcher().then(result => {
+      assert.strictEqual(result, "ok");
+    });
   });
 
   it("can be cached", async function () {
