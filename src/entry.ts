@@ -22,7 +22,14 @@ type Value<T> =
 
 function valueIs(a: Value<any>, b: Value<any>) {
   const len = a.length;
-  return len === b.length && a[len - 1] === b[len - 1];
+  return (
+    // Unknown values are not equal to each other.
+    len > 0 &&
+    // Both values must be ordinary (or both exceptional) to be equal.
+    len === b.length &&
+    // The underlying value or exception must be the same.
+    a[len - 1] === b[len - 1]
+  );
 }
 
 function valueGet<T>(value: Value<T>): T {
