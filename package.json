@@ -34,15 +34,15 @@
     "test": "npm run build && npm run mocha"
   },
   "devDependencies": {
-    "@types/mocha": "^5.2.6",
-    "@types/node": "^12.0.4",
-    "fibers": "^4.0.1",
-    "mocha": "^6.1.4",
-    "rimraf": "^2.6.3",
-    "rollup": "^1.13.1",
-    "rollup-plugin-typescript2": "^0.21.1",
-    "source-map-support": "^0.5.12",
-    "typescript": "^3.3.3333"
+    "@types/mocha": "5.2.7",
+    "@types/node": "12.0.10",
+    "fibers": "4.0.1",
+    "mocha": "6.1.4",
+    "rimraf": "2.6.3",
+    "rollup": "1.16.2",
+    "rollup-plugin-typescript2": "0.21.2",
+    "source-map-support": "0.5.12",
+    "typescript": "3.5.2"
   },
   "dependencies": {
     "@wry/context": "^0.4.0"
