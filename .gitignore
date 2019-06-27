@@ -41,3 +41,6 @@ lib
 
 # Cache directory for rollup-plugin-typescript2
 .rpt2_cache
+
+# Cache directory for Reify-compiled tests
+.reify-cache

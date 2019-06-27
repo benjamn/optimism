@@ -39,8 +39,18 @@ export default [
     "esm"
   ),
   build(
-    "src/tests/main.ts",
-    "lib/tests/bundle.js",
+    "src/index.ts",
+    "lib/bundle.cjs.js",
     "cjs"
-  )
+  ),
+  build(
+    "src/tests/main.ts",
+    "lib/tests/bundle.esm.js",
+    "esm"
+  ),
+  build(
+    "src/tests/main.ts",
+    "lib/tests/bundle.cjs.js",
+    "cjs"
+  ),
 ];

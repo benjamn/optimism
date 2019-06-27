@@ -3,6 +3,7 @@
 /lib/tests
 .travis.yml
 .rpt2_cache
+.reify-cache
 tsconfig.json
 tsconfig.rollup.json
 rollup.config.js

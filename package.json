@@ -14,7 +14,7 @@
     "tracker",
     "memoization"
   ],
-  "main": "lib/index.js",
+  "main": "lib/bundle.cjs.js",
   "module": "lib/bundle.esm.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
@@ -27,9 +27,9 @@
     "url": "https://github.com/benjamn/optimism/issues"
   },
   "scripts": {
-    "build": "npm run clean && tsc && rollup -c",
+    "build": "npm run clean && tsc --emitDeclarationOnly && rollup -c",
     "clean": "rimraf lib",
-    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace lib/tests/index",
+    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace test.js",
     "prepublish": "npm run build",
     "test": "npm run build && npm run mocha"
   },
@@ -38,10 +38,12 @@
     "@types/node": "12.0.10",
     "fibers": "4.0.1",
     "mocha": "6.1.4",
+    "reify": "0.20.6",
     "rimraf": "2.6.3",
     "rollup": "1.16.2",
     "rollup-plugin-typescript2": "0.21.2",
     "source-map-support": "0.5.12",
+    "tslib": "1.10.0",
     "typescript": "3.5.2"
   },
   "dependencies": {
