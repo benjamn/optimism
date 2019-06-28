@@ -149,9 +149,15 @@ function recomputeIfDirty(entry: AnyEntry) {
   }
 
   if (mightBeDirty(entry)) {
+    const { recomputing } = entry;
+    // Since we are, in an abstract sense, recomputing the parent entry,
+    // it's important to set entry.recomputing = true, so we don't get stuck
+    // in an infinite loop if there's a cycle in the dirtyChildren graph.
+    entry.recomputing = true;
     // Get fresh values for any dirty children, and if those values
     // disagree with this.childValues, mark this Entry explicitly dirty.
     entry.dirtyChildren!.forEach(recomputeSilently);
+    entry.recomputing = recomputing;
 
     if (entry.dirty) {
       // If this Entry has become explicitly dirty after comparing the fresh
@@ -164,6 +170,7 @@ function recomputeIfDirty(entry: AnyEntry) {
 }
 
 function recomputeSilently(entry: AnyEntry) {
+  if (entry.recomputing) return;
   try {
     recomputeIfDirty(entry);
   } finally {
@@ -175,7 +182,6 @@ function recomputeSilently(entry: AnyEntry) {
 
 function reallyRecompute(entry: AnyEntry) {
   assert(! entry.recomputing, "already recomputing");
-  entry.recomputing = true;
 
   // Since this recomputation is likely to re-remember some of this
   // entry's children, we forget our children here but do not call
