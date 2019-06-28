@@ -73,13 +73,13 @@ export class Entry<TArgs extends any[], TValue> {
   }
 
   public recompute(): TValue {
+    assertNotRecomputing(this);
     if (! rememberParent(this) && maybeReportOrphan(this)) {
       // The recipient of the entry.reportOrphan callback decided to dispose
       // of this orphan entry by calling entry.dispose(), so we don't need to
       // (and should not) proceed with the recomputation.
       return void 0 as any;
     }
-
     return recomputeIfDirty(this);
   }
 
@@ -180,8 +180,12 @@ function recomputeSilently(entry: AnyEntry) {
   }
 }
 
-function reallyRecompute(entry: AnyEntry) {
+function assertNotRecomputing(entry: AnyEntry) {
   assert(! entry.recomputing, "already recomputing");
+}
+
+function reallyRecompute(entry: AnyEntry) {
+  assertNotRecomputing(entry);
 
   // Since this recomputation is likely to re-remember some of this
   // entry's children, we forget our children here but do not call
