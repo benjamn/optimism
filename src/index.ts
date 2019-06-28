@@ -1,5 +1,5 @@
 import { Cache } from "./cache";
-import { Entry } from "./entry";
+import { Entry, AnyEntry } from "./entry";
 import { parentEntrySlot } from "./context";
 import { KeyTrie } from "./key-trie";
 
@@ -63,6 +63,8 @@ export type OptimisticWrapOptions<TArgs extends any[]> = {
   subscribe?: (...args: TArgs) => (() => any) | undefined;
 };
 
+const caches = new Set<Cache<TCacheKey, AnyEntry>>();
+
 export function wrap<
   TArgs extends any[],
   TResult,
@@ -113,11 +115,14 @@ export function wrap<
     // since we just finished computing its value.
     cache.set(key, entry);
 
+    caches.add(cache);
+
     // Clean up any excess entries in the cache, but only if there is no
     // active parent entry, meaning we're not in the middle of a larger
     // computation that might be flummoxed by the cleaning.
     if (! parentEntrySlot.hasValue()) {
-      cache.clean();
+      caches.forEach(cache => cache.clean());
+      caches.clear();
     }
 
     // If options.disposable is truthy, the caller of wrap is telling us
