@@ -5,7 +5,6 @@ import {
   defaultMakeCacheKey,
   OptimisticWrapperFunction,
 } from "../index";
-import { noContext } from '../context';
 import { wrapYieldingFiberMethods } from '@wry/context';
 
 type NumThunk = OptimisticWrapperFunction<[], number>;
@@ -337,6 +336,118 @@ describe("optimism", function () {
 
     returnZero = false;
     check(fn);
+  });
+
+  it("tolerates misbehaving makeCacheKey functions", function () {
+    type NumNum = OptimisticWrapperFunction<[number], number>;
+
+    let chaos = false;
+    let counter = 0;
+    const allOddsDep = wrap(() => ++counter);
+
+    const sumOdd: NumNum = wrap((n: number) => {
+      allOddsDep();
+      if (n < 1) return 0;
+      if (n % 2 === 1) {
+        return n + sumEven(n - 1);
+      }
+      return sumEven(n);
+    }, {
+      makeCacheKey(n) {
+        // Even though the computation completes, returning "constant" causes
+        // cycles in the Entry graph.
+        return chaos ? "constant" : n;
+      }
+    });
+
+    const sumEven: NumNum = wrap((n: number) => {
+      if (n < 1) return 0;
+      if (n % 2 === 0) {
+        return n + sumOdd(n - 1);
+      }
+      return sumOdd(n);
+    });
+
+    function check() {
+      sumEven.dirty(10);
+      sumOdd.dirty(10);
+      if (chaos) {
+        try {
+          sumOdd(10);
+        } catch (e) {
+          assert.strictEqual(e.message, "already recomputing");
+        }
+        try {
+          sumEven(10);
+        } catch (e) {
+          assert.strictEqual(e.message, "already recomputing");
+        }
+      } else {
+        assert.strictEqual(sumEven(10), 55);
+        assert.strictEqual(sumOdd(10), 55);
+      }
+    }
+
+    check();
+
+    allOddsDep.dirty();
+    sumEven.dirty(10);
+    check();
+
+    allOddsDep.dirty();
+    allOddsDep();
+    check();
+
+    chaos = true;
+    check();
+
+    allOddsDep.dirty();
+    allOddsDep();
+    check();
+
+    allOddsDep.dirty();
+    check();
+
+    chaos = false;
+    allOddsDep.dirty();
+    check();
+
+    chaos = true;
+    sumOdd.dirty(9);
+    sumOdd.dirty(7);
+    sumOdd.dirty(5);
+    check();
+
+    chaos = false;
+    check();
+  });
+
+  it("tolerates cycles when propagating dirty/clean signals", function () {
+    let counter = 0;
+    const dep = wrap(() => ++counter);
+
+    const callChild = () => child();
+    let parentBody = callChild;
+    const parent = wrap(() => {
+      dep();
+      return parentBody();
+    });
+
+    const callParent = () => parent();
+    let childBody = () => "child";
+    const child = wrap(() => {
+      dep();
+      return childBody();
+    });
+
+    assert.strictEqual(parent(), "child");
+
+    childBody = callParent;
+    parentBody = () => "parent";
+    child.dirty();
+    assert.strictEqual(child(), "child");
+    dep.dirty();
+    assert.strictEqual(child(), "parent");
   });
 
   it("supports disposable wrapped functions", function () {

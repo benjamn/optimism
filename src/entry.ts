@@ -1,7 +1,6 @@
 import { parentEntrySlot } from "./context";
 import { OptimisticWrapOptions } from "./index";
 
-const UNKNOWN_VALUE = Object.create(null);
 const reusableEmptyArray: AnyEntry[] = [];
 const emptySetPool: Set<AnyEntry>[] = [];
 const POOL_TARGET_SIZE = 100;
@@ -14,6 +13,37 @@ function assert(condition: any, optionalMessage?: string) {
   }
 }
 
+// Since exceptions are cached just like normal values, we need an efficient
+// way of representing unknown, ordinary, and exceptional values.
+type Value<T> =
+  | []           // unknown
+  | [T]          // known value
+  | [void, any]; // known exception
+
+function valueIs(a: Value<any>, b: Value<any>) {
+  const len = a.length;
+  return (
+    // Unknown values are not equal to each other.
+    len > 0 &&
+    // Both values must be ordinary (or both exceptional) to be equal.
+    len === b.length &&
+    // The underlying value or exception must be the same.
+    a[len - 1] === b[len - 1]
+  );
+}
+
+function valueGet<T>(value: Value<T>): T {
+  switch (value.length) {
+    case 0: throw new Error("unknown value");
+    case 1: return value[0];
+    case 2: throw value[1];
+  }
+}
+
+function valueCopy<T>(value: Value<T>): Value<T> {
+  return value.slice(0) as Value<T>;
+}
+
 export type AnyEntry = Entry<any, any>;
 
 export class Entry<TArgs extends any[], TValue> {
@@ -24,7 +54,7 @@ export class Entry<TArgs extends any[], TValue> {
   public reportOrphan?: (this: Entry<TArgs, TValue>) => any;
 
   public readonly parents = new Set<AnyEntry>();
-  public readonly childValues = new Map<AnyEntry, any>();
+  public readonly childValues = new Map<AnyEntry, Value<any>>();
 
   // When this Entry has children that are dirty, this property becomes
   // a Set containing other Entry objects, borrowed from emptySetPool.
@@ -33,7 +63,7 @@ export class Entry<TArgs extends any[], TValue> {
 
   public dirty = true;
   public recomputing = false;
-  public value: TValue = UNKNOWN_VALUE;
+  public readonly value: Value<TValue> = [];
 
   constructor(
     public readonly fn: (...args: TArgs) => TValue,
@@ -43,20 +73,20 @@ export class Entry<TArgs extends any[], TValue> {
   }
 
   public recompute(): TValue {
+    assertNotRecomputing(this);
     if (! rememberParent(this) && maybeReportOrphan(this)) {
       // The recipient of the entry.reportOrphan callback decided to dispose
       // of this orphan entry by calling entry.dispose(), so we don't need to
       // (and should not) proceed with the recomputation.
       return void 0 as any;
     }
-
     return recomputeIfDirty(this);
   }
 
   public setDirty() {
     if (this.dirty) return;
     this.dirty = true;
-    this.value = UNKNOWN_VALUE;
+    this.value.length = 0;
     reportDirty(this);
     // We can go ahead and unsubscribe here, since any further dirty
     // notifications we receive will be redundant, and unsubscribing may
@@ -92,7 +122,7 @@ function rememberParent(child: AnyEntry) {
     child.parents.add(parent);
 
     if (! parent.childValues.has(child)) {
-      parent.childValues.set(child, UNKNOWN_VALUE);
+      parent.childValues.set(child, []);
     }
 
     if (mightBeDirty(child)) {
@@ -119,16 +149,15 @@ function recomputeIfDirty(entry: AnyEntry) {
   }
 
   if (mightBeDirty(entry)) {
+    const { recomputing } = entry;
+    // Since we are, in an abstract sense, recomputing the parent entry,
+    // it's important to set entry.recomputing = true, so we don't get stuck
+    // in an infinite loop if there's a cycle in the dirtyChildren graph.
+    entry.recomputing = true;
     // Get fresh values for any dirty children, and if those values
     // disagree with this.childValues, mark this Entry explicitly dirty.
-    entry.dirtyChildren!.forEach(child => {
-      assert(entry.childValues.has(child));
-      try {
-        recomputeIfDirty(child);
-      } catch (e) {
-        entry.setDirty();
-      }
-    });
+    entry.dirtyChildren!.forEach(recomputeSilently);
+    entry.recomputing = recomputing;
 
     if (entry.dirty) {
       // If this Entry has become explicitly dirty after comparing the fresh
@@ -137,41 +166,39 @@ function recomputeIfDirty(entry: AnyEntry) {
     }
   }
 
-  assert(entry.value !== UNKNOWN_VALUE);
+  return valueGet(entry.value);
+}
 
-  return entry.value;
+function recomputeSilently(entry: AnyEntry) {
+  if (entry.recomputing) return;
+  try {
+    recomputeIfDirty(entry);
+  } finally {
+    // If the recomputation threw an exception, it will be cached via
+    // entry.value. Returning here stops the exception from propagating.
+    return;
+  }
+}
+
+function assertNotRecomputing(entry: AnyEntry) {
+  assert(! entry.recomputing, "already recomputing");
 }
 
 function reallyRecompute(entry: AnyEntry) {
-  assert(! entry.recomputing, "already recomputing");
-  entry.recomputing = true;
+  assertNotRecomputing(entry);
 
   // Since this recomputation is likely to re-remember some of this
   // entry's children, we forget our children here but do not call
   // maybeReportOrphan until after the recomputation finishes.
   const originalChildren = forgetChildren(entry);
 
-  let threw = true;
-  try {
-    parentEntrySlot.withValue(entry, () => {
-      entry.value = entry.fn.apply(null, entry.args);
-    });
-    threw = false;
+  // Set entry as the parent entry while calling recomputeNewValue(entry).
+  parentEntrySlot.withValue(entry, recomputeNewValue, [entry]);
 
-  } finally {
-    entry.recomputing = false;
-
-    if (threw || ! maybeSubscribe(entry)) {
-      // Mark this Entry dirty if entry.fn threw or we failed to
-      // resubscribe. This is important because, if we have a subscribe
-      // function and it failed, then we're going to miss important
-      // notifications about the potential dirtiness of entry.value.
-      entry.setDirty();
-    } else {
-      // If we successfully recomputed entry.value and did not fail to
-      // (re)subscribe, then this Entry is no longer explicitly dirty.
-      setClean(entry);
-    }
+  if (maybeSubscribe(entry)) {
+    // If we successfully recomputed entry.value and did not fail to
+    // (re)subscribe, then this Entry is no longer explicitly dirty.
+    setClean(entry);
   }
 
   // Now that we've had a chance to re-remember any children that were
@@ -179,7 +206,22 @@ function reallyRecompute(entry: AnyEntry) {
   // children that remain.
   originalChildren.forEach(maybeReportOrphan);
 
-  return entry.value;
+  return valueGet(entry.value);
+}
+
+function recomputeNewValue(entry: AnyEntry) {
+  entry.recomputing = true;
+  // Set entry.value as unknown.
+  entry.value.length = 0;
+  try {
+    // If entry.fn succeeds, entry.value will become a normal Value.
+    entry.value[0] = entry.fn.apply(null, entry.args);
+  } catch (e) {
+    // If entry.fn throws, entry.value will become exceptional.
+    entry.value[1] = e;
+  }
+  // Either way, this line is always reached.
+  entry.recomputing = false;
 }
 
 function mightBeDirty(entry: AnyEntry) {
@@ -234,10 +276,10 @@ function reportCleanChild(parent: AnyEntry, child: AnyEntry) {
   assert(parent.childValues.has(child));
   assert(! mightBeDirty(child));
 
-  const childValue = parent.childValues.get(child);
-  if (childValue === UNKNOWN_VALUE) {
-    parent.childValues.set(child, child.value);
-  } else if (childValue !== child.value) {
+  const childValue = parent.childValues.get(child)!;
+  if (childValue.length === 0) {
+    parent.childValues.set(child, valueCopy(child.value));
+  } else if (! valueIs(childValue, child.value)) {
     parent.setDirty();
   }
 
@@ -281,7 +323,7 @@ function forgetChildren(parent: AnyEntry) {
 
   if (parent.childValues.size > 0) {
     children = [];
-    parent.childValues.forEach((value, child) => {
+    parent.childValues.forEach((_value, child) => {
       forgetChild(parent, child);
       children.push(child);
     });
