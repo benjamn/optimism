@@ -72,15 +72,25 @@ export class Entry<TArgs extends any[], TValue> {
     ++Entry.count;
   }
 
+  // This is the most important method of the Entry API, because it
+  // determines whether the cached this.value can be returned immediately,
+  // or must be recomputed. The overall performance of the caching system
+  // depends on the truth of the following observations: (1) this.dirty is
+  // usually false, (2) this.dirtyChildren is usually null/empty, and thus
+  // (3) valueGet(this.value) is usually returned without recomputation.
   public recompute(): TValue {
-    assertNotRecomputing(this);
+    assert(! this.recomputing, "already recomputing");
+
     if (! rememberParent(this) && maybeReportOrphan(this)) {
       // The recipient of the entry.reportOrphan callback decided to dispose
       // of this orphan entry by calling entry.dispose(), so we don't need to
       // (and should not) proceed with the recomputation.
       return void 0 as any;
     }
-    return recomputeIfDirty(this);
+
+    return mightBeDirty(this)
+      ? reallyRecompute(this)
+      : valueGet(this.value);
   }
 
   public setDirty() {
@@ -135,58 +145,7 @@ function rememberParent(child: AnyEntry) {
   }
 }
 
-// This is the most important method of the Entry API, because it
-// determines whether the cached entry.value can be returned immediately,
-// or must be recomputed. The overall performance of the caching system
-// depends on the truth of the following observations: (1) this.dirty is
-// usually false, (2) this.dirtyChildren is usually null/empty, and thus
-// (3) this.value is usally returned very quickly, without recomputation.
-function recomputeIfDirty(entry: AnyEntry) {
-  if (entry.dirty) {
-    // If this Entry is explicitly dirty because someone called
-    // entry.setDirty(), recompute.
-    return reallyRecompute(entry);
-  }
-
-  if (mightBeDirty(entry)) {
-    const { recomputing } = entry;
-    // Since we are, in an abstract sense, recomputing the parent entry,
-    // it's important to set entry.recomputing = true, so we don't get stuck
-    // in an infinite loop if there's a cycle in the dirtyChildren graph.
-    entry.recomputing = true;
-    // Get fresh values for any dirty children, and if those values
-    // disagree with this.childValues, mark this Entry explicitly dirty.
-    entry.dirtyChildren!.forEach(recomputeSilently);
-    entry.recomputing = recomputing;
-
-    if (entry.dirty) {
-      // If this Entry has become explicitly dirty after comparing the fresh
-      // values of its dirty children against this.childValues, recompute.
-      return reallyRecompute(entry);
-    }
-  }
-
-  return valueGet(entry.value);
-}
-
-function recomputeSilently(entry: AnyEntry) {
-  if (entry.recomputing) return;
-  try {
-    recomputeIfDirty(entry);
-  } finally {
-    // If the recomputation threw an exception, it will be cached via
-    // entry.value. Returning here stops the exception from propagating.
-    return;
-  }
-}
-
-function assertNotRecomputing(entry: AnyEntry) {
-  assert(! entry.recomputing, "already recomputing");
-}
-
 function reallyRecompute(entry: AnyEntry) {
-  assertNotRecomputing(entry);
-
   // Since this recomputation is likely to re-remember some of this
   // entry's children, we forget our children here but do not call
   // maybeReportOrphan until after the recomputation finishes.
