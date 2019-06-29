@@ -41,7 +41,7 @@ describe("performance", function () {
     assert.strictEqual(counter, 2);
 
     const bigArray: number[] = [];
-    for (let i = 0; i < 10000; ++i) {
+    for (let i = 0; i < 100000; ++i) {
       bigArray.push(Math.round(Math.random() * 100));
     }
 
