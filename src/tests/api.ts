@@ -445,7 +445,7 @@ describe("optimism", function () {
     childBody = callParent;
     parentBody = () => "parent";
     child.dirty();
-    assert.strictEqual(child(), "child");
+    assert.strictEqual(child(), "parent");
     dep.dirty();
     assert.strictEqual(child(), "parent");
   });
