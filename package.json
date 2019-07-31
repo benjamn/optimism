@@ -42,7 +42,7 @@
     "rimraf": "2.6.3",
     "rollup": "1.16.2",
     "rollup-plugin-typescript2": "0.21.2",
-    "source-map-support": "0.5.12",
+    "source-map-support": "0.5.13",
     "tslib": "1.10.0",
     "typescript": "3.5.2"
   },
