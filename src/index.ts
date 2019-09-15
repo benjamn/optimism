@@ -50,10 +50,6 @@ export type OptimisticWrapOptions<TArgs extends any[]> = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
   max?: number;
-  // If a wrapped function is "disposable," then its creator does not
-  // care about its return value, and it should be removed from the cache
-  // immediately when it no longer has any parents that depend on it.
-  disposable?: boolean;
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
@@ -77,19 +73,9 @@ export function wrap<
     entry => entry.dispose(),
   );
 
-  const disposable = !! options.disposable;
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
   function optimistic(): TResult {
-    if (disposable && ! parentEntrySlot.hasValue()) {
-      // If there's no current parent computation, and this wrapped
-      // function is disposable (meaning we don't care about entry.value,
-      // just dependency tracking), then we can short-cut everything else
-      // in this function, because entry.recompute() is going to recycle
-      // the entry object without recomputing anything, anyway.
-      return void 0 as any;
-    }
-
     const key = makeCacheKey.apply(null, arguments as any);
     if (key === void 0) {
       return originalFunction.apply(null, arguments as any);
@@ -104,9 +90,6 @@ export function wrap<
       entry = new Entry<TArgs, TResult>(originalFunction, args);
       cache.set(key, entry);
       entry.subscribe = options.subscribe;
-      if (disposable) {
-        entry.reportOrphan = () => cache.delete(key);
-      }
     }
 
     const value = entry.recompute();
@@ -125,10 +108,7 @@ export function wrap<
       caches.clear();
     }
 
-    // If options.disposable is truthy, the caller of wrap is telling us
-    // they don't care about the result of entry.recompute(), so we should
-    // avoid returning the value, so it won't be accidentally used.
-    return disposable ? void 0 as any : value;
+    return value;
   }
 
   optimistic.dirty = function () {
