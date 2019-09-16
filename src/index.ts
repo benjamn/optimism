@@ -46,7 +46,7 @@ export type OptimisticWrapperFunction<
   dirty: (...args: TArgs) => void;
 };
 
-type OptimisticDependencyFunction<TKey> =
+export type OptimisticDependencyFunction<TKey> =
   ((key: TKey) => void) & {
     dirty: (key: TKey) => void;
   };
