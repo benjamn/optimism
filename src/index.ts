@@ -91,7 +91,7 @@ export function wrap<
     }
 
     const key = makeCacheKey.apply(null, arguments as any);
-    if (! key) {
+    if (key === void 0) {
       return originalFunction.apply(null, arguments as any);
     }
 
@@ -133,7 +133,7 @@ export function wrap<
 
   optimistic.dirty = function () {
     const key = makeCacheKey.apply(null, arguments as any);
-    const child = key && cache.get(key);
+    const child = key !== void 0 && cache.get(key);
     if (child) {
       child.setDirty();
     }

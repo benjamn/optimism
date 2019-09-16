@@ -285,6 +285,54 @@ describe("optimism", function () {
     assert.strictEqual(wrapped(b, b), 3);
   });
 
+  it("supports falsy non-void cache keys", function () {
+    let callCount = 0;
+    const wrapped = wrap((key: number | string | null | boolean | undefined) => {
+      ++callCount;
+      return key;
+    }, {
+      makeCacheKey(key) {
+        return key;
+      },
+    });
+
+    assert.strictEqual(wrapped(0), 0);
+    assert.strictEqual(callCount, 1);
+    assert.strictEqual(wrapped(0), 0);
+    assert.strictEqual(callCount, 1);
+
+    assert.strictEqual(wrapped(""), "");
+    assert.strictEqual(callCount, 2);
+    assert.strictEqual(wrapped(""), "");
+    assert.strictEqual(callCount, 2);
+
+    assert.strictEqual(wrapped(null), null);
+    assert.strictEqual(callCount, 3);
+    assert.strictEqual(wrapped(null), null);
+    assert.strictEqual(callCount, 3);
+
+    assert.strictEqual(wrapped(false), false);
+    assert.strictEqual(callCount, 4);
+    assert.strictEqual(wrapped(false), false);
+    assert.strictEqual(callCount, 4);
+
+    assert.strictEqual(wrapped(0), 0);
+    assert.strictEqual(wrapped(""), "");
+    assert.strictEqual(wrapped(null), null);
+    assert.strictEqual(wrapped(false), false);
+    assert.strictEqual(callCount, 4);
+
+    assert.strictEqual(wrapped(1), 1);
+    assert.strictEqual(wrapped("oyez"), "oyez");
+    assert.strictEqual(wrapped(true), true);
+    assert.strictEqual(callCount, 7);
+
+    assert.strictEqual(wrapped(void 0), void 0);
+    assert.strictEqual(wrapped(void 0), void 0);
+    assert.strictEqual(wrapped(void 0), void 0);
+    assert.strictEqual(callCount, 10);
+  });
+
   it("detects problematic cycles", function () {
     const self: NumThunk = wrap(function () {
       return self() + 1;
