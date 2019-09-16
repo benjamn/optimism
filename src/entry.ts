@@ -1,8 +1,7 @@
 import { parentEntrySlot } from "./context";
 import { OptimisticWrapOptions } from "./index";
 
-const reusableEmptyArray: AnyEntry[] = [];
-const emptySetPool: Set<AnyEntry>[] = [];
+const emptySetPool: Set<any>[] = [];
 const POOL_TARGET_SIZE = 100;
 
 // Since this package might be used browsers, we should avoid using the
@@ -51,7 +50,6 @@ export class Entry<TArgs extends any[], TValue> {
 
   public subscribe: OptimisticWrapOptions<TArgs>["subscribe"];
   public unsubscribe?: () => any;
-  public reportOrphan?: (this: Entry<TArgs, TValue>) => any;
 
   public readonly parents = new Set<AnyEntry>();
   public readonly childValues = new Map<AnyEntry, Value<any>>();
@@ -80,14 +78,7 @@ export class Entry<TArgs extends any[], TValue> {
   // (3) valueGet(this.value) is usually returned without recomputation.
   public recompute(): TValue {
     assert(! this.recomputing, "already recomputing");
-
-    if (! rememberParent(this) && maybeReportOrphan(this)) {
-      // The recipient of the entry.reportOrphan callback decided to dispose
-      // of this orphan entry by calling entry.dispose(), so we don't need to
-      // (and should not) proceed with the recomputation.
-      return void 0 as any;
-    }
-
+    rememberParent(this);
     return mightBeDirty(this)
       ? reallyRecompute(this)
       : valueGet(this.value);
@@ -98,6 +89,7 @@ export class Entry<TArgs extends any[], TValue> {
     this.dirty = true;
     this.value.length = 0;
     reportDirty(this);
+    forgetChildren(this);
     // We can go ahead and unsubscribe here, since any further dirty
     // notifications we receive will be redundant, and unsubscribing may
     // free up some resources, e.g. file watchers.
@@ -105,7 +97,7 @@ export class Entry<TArgs extends any[], TValue> {
   }
 
   public dispose() {
-    forgetChildren(this).forEach(maybeReportOrphan);
+    forgetChildren(this);
     maybeUnsubscribe(this);
 
     // Because this entry has been kicked out of the cache (in index.js),
@@ -123,6 +115,25 @@ export class Entry<TArgs extends any[], TValue> {
       parent.setDirty();
       forgetChild(parent, this);
     });
+  }
+
+  private sets: Set<Set<AnyEntry>> | null = null;
+
+  public addToSet(entrySet: Set<AnyEntry>) {
+    entrySet.add(this);
+    if (! this.sets) {
+      this.sets = emptySetPool.pop() || new Set<Set<AnyEntry>>();
+    }
+    this.sets.add(entrySet);
+  }
+
+  public removeFromSets() {
+    if (this.sets) {
+      this.sets.forEach(set => set.delete(this));
+      this.sets.clear();
+      emptySetPool.push(this.sets);
+      this.sets = null;
+    }
   }
 }
 
@@ -146,10 +157,7 @@ function rememberParent(child: AnyEntry) {
 }
 
 function reallyRecompute(entry: AnyEntry) {
-  // Since this recomputation is likely to re-remember some of this
-  // entry's children, we forget our children here but do not call
-  // maybeReportOrphan until after the recomputation finishes.
-  const originalChildren = forgetChildren(entry);
+  forgetChildren(entry);
 
   // Set entry as the parent entry while calling recomputeNewValue(entry).
   parentEntrySlot.withValue(entry, recomputeNewValue, [entry]);
@@ -159,11 +167,6 @@ function reallyRecompute(entry: AnyEntry) {
     // (re)subscribe, then this Entry is no longer explicitly dirty.
     setClean(entry);
   }
-
-  // Now that we've had a chance to re-remember any children that were
-  // involved in the recomputation, we can safely report any orphan
-  // children that remain.
-  originalChildren.forEach(maybeReportOrphan);
 
   return valueGet(entry.value);
 }
@@ -264,35 +267,22 @@ function removeDirtyChild(parent: AnyEntry, child: AnyEntry) {
   }
 }
 
-// If the given entry has a reportOrphan method, and no remaining parents,
-// call entry.reportOrphan and return true iff it returns true. The
-// reportOrphan function should return true to indicate entry.dispose()
-// has been called, and the entry has been removed from any other caches
-// (see index.js for the only current example).
-function maybeReportOrphan(entry: AnyEntry) {
-  return entry.parents.size === 0 &&
-    typeof entry.reportOrphan === "function" &&
-    entry.reportOrphan() === true;
-}
-
 // Removes all children from this entry and returns an array of the
 // removed children.
 function forgetChildren(parent: AnyEntry) {
-  let children = reusableEmptyArray;
-
   if (parent.childValues.size > 0) {
-    children = [];
     parent.childValues.forEach((_value, child) => {
       forgetChild(parent, child);
-      children.push(child);
     });
   }
+
+  // Remove this parent Entry from any sets to which it was added by the
+  // addToSet method.
+  parent.removeFromSets();
 
   // After we forget all our children, this.dirtyChildren must be empty
   // and therefore must have been reset to null.
   assert(parent.dirtyChildren === null);
-
-  return children;
 }
 
 function forgetChild(parent: AnyEntry, child: AnyEntry) {
