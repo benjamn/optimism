@@ -46,6 +46,11 @@ export type OptimisticWrapperFunction<
   dirty: (...args: TArgs) => void;
 };
 
+type OptimisticDependencyFunction<TKey> =
+  ((key: TKey) => void) & {
+    dirty: (key: TKey) => void;
+  };
+
 export type OptimisticWrapOptions<TArgs extends any[]> = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
@@ -120,4 +125,29 @@ export function wrap<
   };
 
   return optimistic as OptimisticWrapperFunction<TArgs, TResult>;
+}
+
+export function dep<TKey>() {
+  const parentEntriesByKey = new Map<TKey, Set<AnyEntry>>();
+
+  function depend(key: TKey) {
+    const parent = parentEntrySlot.getValue();
+    if (parent) {
+      let parentEntrySet = parentEntriesByKey.get(key);
+      if (!parentEntrySet) {
+        parentEntriesByKey.set(key, parentEntrySet = new Set);
+      }
+      parent.addToSet(parentEntrySet);
+    }
+  }
+
+  depend.dirty = function(key: TKey) {
+    const parentEntrySet = parentEntriesByKey.get(key);
+    if (parentEntrySet) {
+      parentEntrySet.forEach(entry => entry.setDirty());
+      parentEntriesByKey.delete(key);
+    }
+  };
+
+  return depend as OptimisticDependencyFunction<TKey>;
 }

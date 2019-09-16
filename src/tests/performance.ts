@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { wrap, KeyTrie } from "../index";
+import { wrap, dep, KeyTrie } from "../index";
 
 describe("performance", function () {
   this.timeout(30000);
@@ -15,6 +15,23 @@ describe("performance", function () {
     for (let i = 0; i < 100000; ++i) {
       parent({}, i, {});
     }
+  });
+
+  const keys: object[] = [];
+  for (let i = 0; i < 100000; ++i) {
+    keys.push({ i });
+  }
+
+  it("should be able to tolerate lots of deps", function () {
+    const d = dep<object>();
+    const parent = wrap((id: number) => {
+      keys.forEach(d);
+      return id;
+    });
+    parent(1);
+    parent(2);
+    parent(3);
+    keys.forEach(key => d.dirty(key));
   });
 
   it("can speed up sorting with O(array.length) cache lookup", function () {

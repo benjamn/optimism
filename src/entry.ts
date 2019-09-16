@@ -1,7 +1,7 @@
 import { parentEntrySlot } from "./context";
 import { OptimisticWrapOptions } from "./index";
 
-const emptySetPool: Set<AnyEntry>[] = [];
+const emptySetPool: Set<any>[] = [];
 const POOL_TARGET_SIZE = 100;
 
 // Since this package might be used browsers, we should avoid using the
@@ -89,6 +89,7 @@ export class Entry<TArgs extends any[], TValue> {
     this.dirty = true;
     this.value.length = 0;
     reportDirty(this);
+    forgetChildren(this);
     // We can go ahead and unsubscribe here, since any further dirty
     // notifications we receive will be redundant, and unsubscribing may
     // free up some resources, e.g. file watchers.
@@ -114,6 +115,25 @@ export class Entry<TArgs extends any[], TValue> {
       parent.setDirty();
       forgetChild(parent, this);
     });
+  }
+
+  private sets: Set<Set<AnyEntry>> | null = null;
+
+  public addToSet(entrySet: Set<AnyEntry>) {
+    entrySet.add(this);
+    if (! this.sets) {
+      this.sets = emptySetPool.pop() || new Set<Set<AnyEntry>>();
+    }
+    this.sets.add(entrySet);
+  }
+
+  public removeFromSets() {
+    if (this.sets) {
+      this.sets.forEach(set => set.delete(this));
+      this.sets.clear();
+      emptySetPool.push(this.sets);
+      this.sets = null;
+    }
   }
 }
 
@@ -255,6 +275,10 @@ function forgetChildren(parent: AnyEntry) {
       forgetChild(parent, child);
     });
   }
+
+  // Remove this parent Entry from any sets to which it was added by the
+  // addToSet method.
+  parent.removeFromSets();
 
   // After we forget all our children, this.dirtyChildren must be empty
   // and therefore must have been reset to null.
