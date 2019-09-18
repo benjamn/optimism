@@ -116,4 +116,68 @@ describe("OptimisticDependencyFunction<TKey>", () => {
     assert.strictEqual(parent("oyez"), 9);
     assert.strictEqual(parent("mlem"), 11);
   });
+
+  it("supports subscribing and unsubscribing", function () {
+    let subscribeCallCount = 0;
+    let unsubscribeCallCount = 0;
+    let parentCallCount = 0;
+
+    function check(counts: {
+      subscribe: number;
+      unsubscribe: number;
+      parent: number;
+    }) {
+      assert.strictEqual(counts.subscribe, subscribeCallCount);
+      assert.strictEqual(counts.unsubscribe, unsubscribeCallCount);
+      assert.strictEqual(counts.parent, parentCallCount);
+    }
+
+    const d = dep({
+      subscribe(key: string) {
+        ++subscribeCallCount;
+        return () => {
+          ++unsubscribeCallCount;
+        };
+      },
+    });
+
+    assert.strictEqual(subscribeCallCount, 0);
+    assert.strictEqual(unsubscribeCallCount, 0);
+
+    const parent = wrap((key: string) => {
+      d(key);
+      return ++parentCallCount;
+    });
+
+    assert.strictEqual(parent("rawr"), 1);
+    check({ subscribe: 1, unsubscribe: 0, parent: 1 });
+    assert.strictEqual(parent("rawr"), 1);
+    check({ subscribe: 1, unsubscribe: 0, parent: 1 });
+    assert.strictEqual(parent("blep"), 2);
+    check({ subscribe: 2, unsubscribe: 0, parent: 2 });
+    assert.strictEqual(parent("rawr"), 1);
+    check({ subscribe: 2, unsubscribe: 0, parent: 2 });
+    assert.strictEqual(parent("blep"), 2);
+    check({ subscribe: 2, unsubscribe: 0, parent: 2 });
+
+    d.dirty("blep");
+    check({ subscribe: 2, unsubscribe: 1, parent: 2 });
+    assert.strictEqual(parent("rawr"), 1);
+    check({ subscribe: 2, unsubscribe: 1, parent: 2 });
+    d.dirty("blep"); // intentionally redundant
+    check({ subscribe: 2, unsubscribe: 1, parent: 2 });
+    assert.strictEqual(parent("blep"), 3);
+    check({ subscribe: 3, unsubscribe: 1, parent: 3 });
+    assert.strictEqual(parent("blep"), 3);
+    check({ subscribe: 3, unsubscribe: 1, parent: 3 });
+
+    d.dirty("rawr");
+    check({ subscribe: 3, unsubscribe: 2, parent: 3 });
+    assert.strictEqual(parent("blep"), 3);
+    check({ subscribe: 3, unsubscribe: 2, parent: 3 });
+    assert.strictEqual(parent("rawr"), 4);
+    check({ subscribe: 4, unsubscribe: 2, parent: 4 });
+    assert.strictEqual(parent("blep"), 3);
+    check({ subscribe: 4, unsubscribe: 2, parent: 4 });
+  });
 });

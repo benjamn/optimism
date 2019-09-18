@@ -16,6 +16,12 @@ export {
   asyncFromGen,
 } from "./context";
 
+// A lighter-weight dependency, similar to OptimisticWrapperFunction, except
+// with only one argument, no makeCacheKey, no wrapped function to recompute,
+// and no result value. Useful for representing dependency leaves in the graph
+// of computation. Subscriptions are supported.
+export { dep } from "./dep";
+
 // Since the Cache uses a Map internally, any value or object reference can
 // be safely used as a key, though common types include object and string.
 export type TCacheKey = any;
@@ -46,11 +52,6 @@ export type OptimisticWrapperFunction<
   dirty: (...args: TArgs) => void;
 };
 
-export type OptimisticDependencyFunction<TKey> =
-  ((key: TKey) => void) & {
-    dirty: (key: TKey) => void;
-  };
-
 export type OptimisticWrapOptions<TArgs extends any[]> = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
@@ -61,7 +62,7 @@ export type OptimisticWrapOptions<TArgs extends any[]> = {
   makeCacheKey?: (...args: TArgs) => TCacheKey;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
-  subscribe?: (...args: TArgs) => (() => any) | undefined;
+  subscribe?: (...args: TArgs) => void | (() => any);
 };
 
 const caches = new Set<Cache<TCacheKey, AnyEntry>>();
@@ -125,29 +126,4 @@ export function wrap<
   };
 
   return optimistic as OptimisticWrapperFunction<TArgs, TResult>;
-}
-
-export function dep<TKey>() {
-  const parentEntriesByKey = new Map<TKey, Set<AnyEntry>>();
-
-  function depend(key: TKey) {
-    const parent = parentEntrySlot.getValue();
-    if (parent) {
-      let parentEntrySet = parentEntriesByKey.get(key);
-      if (!parentEntrySet) {
-        parentEntriesByKey.set(key, parentEntrySet = new Set);
-      }
-      parent.addToSet(parentEntrySet);
-    }
-  }
-
-  depend.dirty = function(key: TKey) {
-    const parentEntrySet = parentEntriesByKey.get(key);
-    if (parentEntrySet) {
-      parentEntrySet.forEach(entry => entry.setDirty());
-      parentEntriesByKey.delete(key);
-    }
-  };
-
-  return depend as OptimisticDependencyFunction<TKey>;
 }

@@ -1,5 +1,7 @@
 import { parentEntrySlot } from "./context";
 import { OptimisticWrapOptions } from "./index";
+import { Dep } from "./dep";
+import { maybeUnsubscribe, Unsubscribable } from "./helpers";
 
 const emptySetPool: Set<any>[] = [];
 const POOL_TARGET_SIZE = 100;
@@ -49,7 +51,7 @@ export class Entry<TArgs extends any[], TValue> {
   public static count = 0;
 
   public subscribe: OptimisticWrapOptions<TArgs>["subscribe"];
-  public unsubscribe?: () => any;
+  public unsubscribe: Unsubscribable["unsubscribe"];
 
   public readonly parents = new Set<AnyEntry>();
   public readonly childValues = new Map<AnyEntry, Value<any>>();
@@ -117,22 +119,22 @@ export class Entry<TArgs extends any[], TValue> {
     });
   }
 
-  private sets: Set<Set<AnyEntry>> | null = null;
+  private deps: Set<Dep<any>> | null = null;
 
-  public addToSet(entrySet: Set<AnyEntry>) {
-    entrySet.add(this);
-    if (! this.sets) {
-      this.sets = emptySetPool.pop() || new Set<Set<AnyEntry>>();
+  public dependOn(dep: Dep<any>) {
+    dep.add(this);
+    if (! this.deps) {
+      this.deps = emptySetPool.pop() || new Set<Set<AnyEntry>>();
     }
-    this.sets.add(entrySet);
+    this.deps.add(dep);
   }
 
-  public removeFromSets() {
-    if (this.sets) {
-      this.sets.forEach(set => set.delete(this));
-      this.sets.clear();
-      emptySetPool.push(this.sets);
-      this.sets = null;
+  public forgetDeps() {
+    if (this.deps) {
+      this.deps.forEach(dep => dep.delete(this));
+      this.deps.clear();
+      emptySetPool.push(this.deps);
+      this.deps = null;
     }
   }
 }
@@ -278,7 +280,7 @@ function forgetChildren(parent: AnyEntry) {
 
   // Remove this parent Entry from any sets to which it was added by the
   // addToSet method.
-  parent.removeFromSets();
+  parent.forgetDeps();
 
   // After we forget all our children, this.dirtyChildren must be empty
   // and therefore must have been reset to null.
@@ -309,12 +311,4 @@ function maybeSubscribe(entry: AnyEntry) {
   // Returning true indicates either that there was no entry.subscribe
   // function or that it succeeded.
   return true;
-}
-
-function maybeUnsubscribe(entry: AnyEntry) {
-  const { unsubscribe } = entry;
-  if (typeof unsubscribe === "function") {
-    entry.unsubscribe = void 0;
-    unsubscribe();
-  }
 }
