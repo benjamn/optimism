@@ -1,5 +1,5 @@
 import { AnyEntry } from "./entry";
-import { OptimisticWrapOptions } from ".";
+import { OptimisticWrapOptions } from "./index";
 import { parentEntrySlot } from "./context";
 import { Unsubscribable, maybeUnsubscribe } from "./helpers";
 
