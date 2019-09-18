@@ -33,7 +33,7 @@ export function dep<TKey>(options?: {
     }
   }
 
-  depend.dirty = function(key: TKey) {
+  depend.dirty = function dirty(key: TKey) {
     const dep = depsByKey.get(key);
     if (dep) {
       dep.forEach(entry => entry.setDirty());
