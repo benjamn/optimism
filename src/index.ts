@@ -20,7 +20,7 @@ export {
 // with only one argument, no makeCacheKey, no wrapped function to recompute,
 // and no result value. Useful for representing dependency leaves in the graph
 // of computation. Subscriptions are supported.
-export { dep } from "./dep";
+export { dep, OptimisticDependencyFunction } from "./dep";
 
 // Since the Cache uses a Map internally, any value or object reference can
 // be safely used as a key, though common types include object and string.
