@@ -40,7 +40,7 @@
     "mocha": "6.2.0",
     "reify": "0.20.12",
     "rimraf": "3.0.0",
-    "rollup": "1.21.2",
+    "rollup": "1.22.0",
     "rollup-plugin-typescript2": "0.24.2",
     "source-map-support": "0.5.13",
     "tslib": "1.10.0",
