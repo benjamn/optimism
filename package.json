@@ -41,12 +41,12 @@
     "reify": "0.20.12",
     "rimraf": "3.0.0",
     "rollup": "1.25.1",
-    "rollup-plugin-typescript2": "0.24.2",
+    "rollup-plugin-typescript2": "0.24.3",
     "source-map-support": "0.5.13",
     "tslib": "1.10.0",
     "typescript": "3.5.2"
   },
   "dependencies": {
-    "@wry/context": "^0.4.0"
+    "@wry/context": "^0.5.0"
   }
 }
