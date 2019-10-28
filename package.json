@@ -41,7 +41,7 @@
     "reify": "0.20.12",
     "rimraf": "3.0.0",
     "rollup": "1.25.1",
-    "rollup-plugin-typescript2": "0.24.3",
+    "rollup-plugin-typescript2": "0.25.0",
     "source-map-support": "0.5.13",
     "tslib": "1.10.0",
     "typescript": "3.5.2"
