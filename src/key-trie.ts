@@ -1,5 +1,10 @@
 // A trie data structure that holds object keys weakly, yet can also hold
 // non-object keys, unlike the native `WeakMap`.
+
+// If no makeData function is supplied, the looked-up data will be an empty,
+// no-prototype Object.
+const defaultMakeData = () => Object.create(null);
+
 export class KeyTrie<K> {
   // Since a `WeakMap` cannot hold primitive values as keys, we need a
   // backup `Map` instance to hold primitive keys. Both `this._weakMap`
@@ -8,7 +13,10 @@ export class KeyTrie<K> {
   private strong?: Map<any, KeyTrie<K>>;
   private data?: K;
 
-  constructor(private readonly weakness: boolean) {}
+  constructor(
+    private weakness: boolean,
+    private makeData: (array: any[]) => K = defaultMakeData,
+  ) {}
 
   public lookup<T extends any[]>(...array: T): K {
     return this.lookupArray(array);
@@ -17,7 +25,7 @@ export class KeyTrie<K> {
   public lookupArray<T extends any[]>(array: T): K {
     let node: KeyTrie<K> = this;
     array.forEach(key => node = node.getChildTrie(key));
-    return node.data || (node.data = Object.create(null));
+    return node.data || (node.data = this.makeData(array.slice(0)));
   }
 
   private getChildTrie(key: any) {
@@ -25,7 +33,7 @@ export class KeyTrie<K> {
       ? this.weak || (this.weak = new WeakMap<any, KeyTrie<K>>())
       : this.strong || (this.strong = new Map<any, KeyTrie<K>>());
     let child = map.get(key);
-    if (!child) map.set(key, child = new KeyTrie<K>(this.weakness));
+    if (!child) map.set(key, child = new KeyTrie<K>(this.weakness, this.makeData));
     return child;
   }
 }
