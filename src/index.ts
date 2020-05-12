@@ -129,7 +129,7 @@ export function wrap<
   }
 
   function lookup() {
-    const key = makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
+    const key = makeCacheKey.apply(null, arguments as any);
     if (key !== void 0) {
       return cache.get(key);
     }
