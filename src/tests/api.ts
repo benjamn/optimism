@@ -548,4 +548,35 @@ describe("optimism", function () {
     assert.strictEqual(fib(18), 2584);
     assert.strictEqual(fib(8),  21);
   });
+
+  it("allows peeking the current value", function () {
+    const sumFirst = wrap(function (n: number): number {
+      return n < 1 ? 0 : n + sumFirst(n - 1);
+    });
+
+    assert.strictEqual(sumFirst.peek(3), void 0);
+    assert.strictEqual(sumFirst.peek(2), void 0);
+    assert.strictEqual(sumFirst.peek(1), void 0);
+    assert.strictEqual(sumFirst.peek(0), void 0);
+    assert.strictEqual(sumFirst(3), 6);
+    assert.strictEqual(sumFirst.peek(3), 6);
+    assert.strictEqual(sumFirst.peek(2), 3);
+    assert.strictEqual(sumFirst.peek(1), 1);
+    assert.strictEqual(sumFirst.peek(0), 0);
+
+    assert.strictEqual(sumFirst.peek(7), void 0);
+    assert.strictEqual(sumFirst(10), 55);
+    assert.strictEqual(sumFirst.peek(9), 55 - 10);
+    assert.strictEqual(sumFirst.peek(8), 55 - 10 - 9);
+    assert.strictEqual(sumFirst.peek(7), 55 - 10 - 9 - 8);
+
+    sumFirst.dirty(7);
+    // Everything from 7 and above is now unpeekable.
+    assert.strictEqual(sumFirst.peek(10), void 0);
+    assert.strictEqual(sumFirst.peek(9), void 0);
+    assert.strictEqual(sumFirst.peek(8), void 0);
+    assert.strictEqual(sumFirst.peek(7), void 0);
+    // Since 6 < 7, its value is still cached.
+    assert.strictEqual(sumFirst.peek(6), 6 * 7 / 2);
+  });
 });
