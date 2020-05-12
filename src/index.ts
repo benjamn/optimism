@@ -136,16 +136,16 @@ export function wrap<
   }
 
   optimistic.dirty = function () {
-    const child = lookup.apply(null, arguments as any);
-    if (child) {
-      child.setDirty();
+    const entry = lookup.apply(null, arguments as any);
+    if (entry) {
+      entry.setDirty();
     }
   };
 
   optimistic.peek = function () {
-    const child = lookup.apply(null, arguments as any);
-    if (child) {
-      return child.peek();
+    const entry = lookup.apply(null, arguments as any);
+    if (entry) {
+      return entry.peek();
     }
   };
 
