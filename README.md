@@ -1,3 +1,3 @@
-# optimism &nbsp; [![Build Status](https://travis-ci.org/benjamn/optimism.svg?branch=master)](https://travis-ci.org/benjamn/optimism)
+# optimism [![Build Status](https://github.com/benjamn/optimism/workflows/CI/badge.svg)](https://github.com/benjamn/optimism/actions)
 
 Composable reactive caching with efficient invalidation.
