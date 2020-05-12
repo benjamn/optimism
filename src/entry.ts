@@ -72,6 +72,12 @@ export class Entry<TArgs extends any[], TValue> {
     ++Entry.count;
   }
 
+  public peek(): TValue | undefined {
+    if (this.value.length === 1 && !mightBeDirty(this)) {
+      return this.value[0];
+    }
+  }
+
   // This is the most important method of the Entry API, because it
   // determines whether the cached this.value can be returned immediately,
   // or must be recomputed. The overall performance of the caching system

@@ -51,6 +51,8 @@ export type OptimisticWrapperFunction<
   // The .dirty(...) method of an optimistic function takes exactly the
   // same parameter types as the original function.
   dirty: (...args: TKeyArgs) => void;
+  // Examine the current value without recomputing it.
+  peek: (...args: TKeyArgs) => TResult | undefined;
 };
 
 export type OptimisticWrapOptions<
@@ -126,11 +128,24 @@ export function wrap<
     return value;
   }
 
-  optimistic.dirty = function () {
+  function lookup() {
     const key = makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
-    const child = key !== void 0 && cache.get(key);
+    if (key !== void 0) {
+      return cache.get(key);
+    }
+  }
+
+  optimistic.dirty = function () {
+    const child = lookup.apply(null, arguments as any);
     if (child) {
       child.setDirty();
+    }
+  };
+
+  optimistic.peek = function () {
+    const child = lookup.apply(null, arguments as any);
+    if (child) {
+      return child.peek();
     }
   };
 
