@@ -46,20 +46,27 @@ export { KeyTrie }
 export type OptimisticWrapperFunction<
   TArgs extends any[],
   TResult,
+  TKeyArgs extends any[] = TArgs,
 > = ((...args: TArgs) => TResult) & {
   // The .dirty(...) method of an optimistic function takes exactly the
   // same parameter types as the original function.
-  dirty: (...args: TArgs) => void;
+  dirty: (...args: TKeyArgs) => void;
 };
 
-export type OptimisticWrapOptions<TArgs extends any[]> = {
+export type OptimisticWrapOptions<
+  TArgs extends any[],
+  TKeyArgs extends any[] = TArgs,
+> = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
   max?: number;
+  // Transform the raw arguments to some other type of array, which will then
+  // be passed to makeCacheKey.
+  keyArgs?: (...args: TArgs) => TKeyArgs;
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
-  makeCacheKey?: (...args: TArgs) => TCacheKey;
+  makeCacheKey?: (...args: TKeyArgs) => TCacheKey;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
@@ -70,19 +77,21 @@ const caches = new Set<Cache<TCacheKey, AnyEntry>>();
 export function wrap<
   TArgs extends any[],
   TResult,
+  TKeyArgs extends any[] = TArgs,
 >(
   originalFunction: (...args: TArgs) => TResult,
-  options: OptimisticWrapOptions<TArgs> = Object.create(null),
+  options: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null),
 ) {
   const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
     options.max || Math.pow(2, 16),
     entry => entry.dispose(),
   );
 
+  const keyArgs = options.keyArgs || ((...args: TArgs): TKeyArgs => args as any);
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
   function optimistic(): TResult {
-    const key = makeCacheKey.apply(null, arguments as any);
+    const key = makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
     if (key === void 0) {
       return originalFunction.apply(null, arguments as any);
     }
@@ -118,12 +127,12 @@ export function wrap<
   }
 
   optimistic.dirty = function () {
-    const key = makeCacheKey.apply(null, arguments as any);
+    const key = makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
     const child = key !== void 0 && cache.get(key);
     if (child) {
       child.setDirty();
     }
   };
 
-  return optimistic as OptimisticWrapperFunction<TArgs, TResult>;
+  return optimistic as OptimisticWrapperFunction<TArgs, TResult, TKeyArgs>;
 }

@@ -470,6 +470,36 @@ describe("optimism", function () {
     check();
   });
 
+  it("supports options.keyArgs", function () {
+    const sumNums = wrap((...args: any[]) => ({
+      sum: args.reduce(
+        (sum, arg) => typeof arg === "number" ? arg + sum : sum,
+        0,
+      ) as number,
+    }), {
+      keyArgs(...args) {
+        return args.filter(arg => typeof arg === "number");
+      },
+    });
+
+    assert.strictEqual(sumNums().sum, 0);
+    assert.strictEqual(sumNums("asdf", true, sumNums).sum, 0);
+
+    const sumObj1 = sumNums(1, "zxcv", true, 2, false, 3);
+    assert.strictEqual(sumObj1.sum, 6);
+    // These results are === sumObj1 because the numbers involved are identical.
+    assert.strictEqual(sumNums(1, 2, 3), sumObj1);
+    assert.strictEqual(sumNums("qwer", 1, 2, true, 3, [3]), sumObj1);
+    assert.strictEqual(sumNums("backwards", 3, 2, 1).sum, 6);
+    assert.notStrictEqual(sumNums("backwards", 3, 2, 1), sumObj1);
+
+    sumNums.dirty(1, 2, 3);
+    const sumObj2 = sumNums(1, 2, 3);
+    assert.strictEqual(sumObj2.sum, 6);
+    assert.notStrictEqual(sumObj2, sumObj1);
+    assert.strictEqual(sumNums("a", 1, "b", 2, "c", 3), sumObj2);
+  });
+
   it("tolerates cycles when propagating dirty/clean signals", function () {
     let counter = 0;
     const dep = wrap(() => ++counter);
