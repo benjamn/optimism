@@ -71,7 +71,8 @@ describe("KeyTrie", function () {
       assert.strictEqual(data instanceof Data, true);
       assert.notStrictEqual(data.args, args);
       assert.deepEqual(data.args, args);
-      assert.strictEqual(dataTrie.lookup(...args), data);
+      assert.strictEqual(data, dataTrie.lookup(...args));
+      assert.strictEqual(data, dataTrie.lookupArray(arguments));
       return data;
     }
     const datas = [

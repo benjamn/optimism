@@ -5,6 +5,9 @@
 // no-prototype Object.
 const defaultMakeData = () => Object.create(null);
 
+// Useful for processing arguments objects as well as arrays.
+const { forEach, slice } = Array.prototype;
+
 export class KeyTrie<K> {
   // Since a `WeakMap` cannot hold primitive values as keys, we need a
   // backup `Map` instance to hold primitive keys. Both `this._weakMap`
@@ -22,10 +25,10 @@ export class KeyTrie<K> {
     return this.lookupArray(array);
   }
 
-  public lookupArray<T extends any[]>(array: T): K {
+  public lookupArray<T extends IArguments | any[]>(array: T): K {
     let node: KeyTrie<K> = this;
-    array.forEach(key => node = node.getChildTrie(key));
-    return node.data || (node.data = this.makeData(array.slice(0)));
+    forEach.call(array, key => node = node.getChildTrie(key));
+    return node.data || (node.data = this.makeData(slice.call(array)));
   }
 
   private getChildTrie(key: any) {
