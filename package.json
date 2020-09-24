@@ -34,7 +34,7 @@
     "test": "npm run build && npm run mocha"
   },
   "devDependencies": {
-    "@types/mocha": "^7.0.2",
+    "@types/mocha": "^8.0.3",
     "@types/node": "^13.13.5",
     "fibers": "^5.0.0",
     "mocha": "^7.1.2",
