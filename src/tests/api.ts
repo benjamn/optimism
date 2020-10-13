@@ -596,7 +596,7 @@ describe("optimism", function () {
     assert.strictEqual(sumFirst(10), 55);
     assert.deepStrictEqual(ns, inclusiveDescendingRange(10));
 
-    sumFirst.forget(6);
+    assert.strictEqual(sumFirst.forget(6), true);
     assert.strictEqual(sumFirst(4), 10);
     assert.deepStrictEqual(ns, inclusiveDescendingRange(10));
 
@@ -606,12 +606,17 @@ describe("optimism", function () {
       ...inclusiveDescendingRange(11, 6),
     ]);
 
-    sumFirst.forget(3);
+    assert.strictEqual(sumFirst.forget(3), true);
     assert.strictEqual(sumFirst(7), 28);
     assert.deepStrictEqual(ns, [
       ...inclusiveDescendingRange(10),
       ...inclusiveDescendingRange(11, 6),
       ...inclusiveDescendingRange(7, 3),
     ]);
+
+    assert.strictEqual(sumFirst.forget(123), false);
+    assert.strictEqual(sumFirst.forget(-1), false);
+    assert.strictEqual(sumFirst.forget("7" as any), false);
+    assert.strictEqual((sumFirst.forget as any)(6, 4), false);
   });
 });
