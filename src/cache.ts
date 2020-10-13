@@ -17,16 +17,16 @@ export class Cache<K = any, V = any> {
     public dispose: (value: V, key: K) => void = defaultDispose,
   ) {}
 
-  public has(key: K) {
+  public has(key: K): boolean {
     return this.map.has(key);
   }
 
-  public get(key: K) {
+  public get(key: K): V | undefined {
     const entry = this.getEntry(key);
     return entry && entry.value;
   }
 
-  private getEntry(key: K): Node<K, V> | void {
+  private getEntry(key: K): Node<K, V> | undefined {
     const entry = this.map.get(key);
 
     if (entry && entry !== this.newest) {
@@ -54,7 +54,7 @@ export class Cache<K = any, V = any> {
     return entry;
   }
 
-  public set(key: K, value: V) {
+  public set(key: K, value: V): V {
     let entry = this.getEntry(key);
     if (entry) {
       return entry.value = value;
@@ -85,7 +85,7 @@ export class Cache<K = any, V = any> {
     }
   }
 
-  public delete(key: K) {
+  public delete(key: K): boolean {
     const entry = this.map.get(key);
     if (entry) {
       if (entry === this.newest) {

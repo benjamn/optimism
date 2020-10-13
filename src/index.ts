@@ -128,7 +128,7 @@ export function wrap<
     return value;
   }
 
-  function lookup() {
+  function lookup(): Entry<TArgs, TResult> | undefined {
     const key = makeCacheKey.apply(null, arguments as any);
     if (key !== void 0) {
       return cache.get(key);
