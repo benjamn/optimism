@@ -579,4 +579,44 @@ describe("optimism", function () {
     // Since 6 < 7, its value is still cached.
     assert.strictEqual(sumFirst.peek(6), 6 * 7 / 2);
   });
+
+  it("allows forgetting entries", function () {
+    const ns: number[] = [];
+    const sumFirst = wrap(function (n: number): number {
+      ns.push(n);
+      return n < 1 ? 0 : n + sumFirst(n - 1);
+    });
+
+    function inclusiveDescendingRange(n: number, limit = 0) {
+      const range: number[] = [];
+      while (n >= limit) range.push(n--);
+      return range;
+    }
+
+    assert.strictEqual(sumFirst(10), 55);
+    assert.deepStrictEqual(ns, inclusiveDescendingRange(10));
+
+    assert.strictEqual(sumFirst.forget(6), true);
+    assert.strictEqual(sumFirst(4), 10);
+    assert.deepStrictEqual(ns, inclusiveDescendingRange(10));
+
+    assert.strictEqual(sumFirst(11), 66);
+    assert.deepStrictEqual(ns, [
+      ...inclusiveDescendingRange(10),
+      ...inclusiveDescendingRange(11, 6),
+    ]);
+
+    assert.strictEqual(sumFirst.forget(3), true);
+    assert.strictEqual(sumFirst(7), 28);
+    assert.deepStrictEqual(ns, [
+      ...inclusiveDescendingRange(10),
+      ...inclusiveDescendingRange(11, 6),
+      ...inclusiveDescendingRange(7, 3),
+    ]);
+
+    assert.strictEqual(sumFirst.forget(123), false);
+    assert.strictEqual(sumFirst.forget(-1), false);
+    assert.strictEqual(sumFirst.forget("7" as any), false);
+    assert.strictEqual((sumFirst.forget as any)(6, 4), false);
+  });
 });

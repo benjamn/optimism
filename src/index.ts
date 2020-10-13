@@ -53,6 +53,8 @@ export type OptimisticWrapperFunction<
   dirty: (...args: TKeyArgs) => void;
   // Examine the current value without recomputing it.
   peek: (...args: TKeyArgs) => TResult | undefined;
+  // Remove the entry from the cache, dirtying any parent entries.
+  forget: (...args: TKeyArgs) => boolean;
 };
 
 export type OptimisticWrapOptions<
@@ -147,6 +149,11 @@ export function wrap<
     if (entry) {
       return entry.peek();
     }
+  };
+
+  optimistic.forget = function () {
+    const key = makeCacheKey.apply(null, arguments as any);
+    return key !== void 0 && cache.delete(key);
   };
 
   return optimistic as OptimisticWrapperFunction<TArgs, TResult, TKeyArgs>;
