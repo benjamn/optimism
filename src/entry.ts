@@ -67,7 +67,6 @@ export class Entry<TArgs extends any[], TValue> {
 
   constructor(
     public readonly fn: (...args: TArgs) => TValue,
-    public args: TArgs,
   ) {
     ++Entry.count;
   }
@@ -84,11 +83,11 @@ export class Entry<TArgs extends any[], TValue> {
   // depends on the truth of the following observations: (1) this.dirty is
   // usually false, (2) this.dirtyChildren is usually null/empty, and thus
   // (3) valueGet(this.value) is usually returned without recomputation.
-  public recompute(): TValue {
+  public recompute(args: TArgs): TValue {
     assert(! this.recomputing, "already recomputing");
     rememberParent(this);
     return mightBeDirty(this)
-      ? reallyRecompute(this)
+      ? reallyRecompute(this, args)
       : valueGet(this.value);
   }
 
@@ -164,13 +163,13 @@ function rememberParent(child: AnyEntry) {
   }
 }
 
-function reallyRecompute(entry: AnyEntry) {
+function reallyRecompute(entry: AnyEntry, args: any[]) {
   forgetChildren(entry);
 
   // Set entry as the parent entry while calling recomputeNewValue(entry).
-  parentEntrySlot.withValue(entry, recomputeNewValue, [entry]);
+  parentEntrySlot.withValue(entry, recomputeNewValue, [entry, args]);
 
-  if (maybeSubscribe(entry)) {
+  if (maybeSubscribe(entry, args)) {
     // If we successfully recomputed entry.value and did not fail to
     // (re)subscribe, then this Entry is no longer explicitly dirty.
     setClean(entry);
@@ -179,13 +178,13 @@ function reallyRecompute(entry: AnyEntry) {
   return valueGet(entry.value);
 }
 
-function recomputeNewValue(entry: AnyEntry) {
+function recomputeNewValue(entry: AnyEntry, args: any[]) {
   entry.recomputing = true;
   // Set entry.value as unknown.
   entry.value.length = 0;
   try {
     // If entry.fn succeeds, entry.value will become a normal Value.
-    entry.value[0] = entry.fn.apply(null, entry.args);
+    entry.value[0] = entry.fn.apply(null, args);
   } catch (e) {
     // If entry.fn throws, entry.value will become exceptional.
     entry.value[1] = e;
@@ -299,11 +298,11 @@ function forgetChild(parent: AnyEntry, child: AnyEntry) {
   removeDirtyChild(parent, child);
 }
 
-function maybeSubscribe(entry: AnyEntry) {
+function maybeSubscribe(entry: AnyEntry, args: any[]) {
   if (typeof entry.subscribe === "function") {
     try {
       maybeUnsubscribe(entry); // Prevent double subscriptions.
-      entry.unsubscribe = entry.subscribe.apply(null, entry.args);
+      entry.unsubscribe = entry.subscribe.apply(null, args);
     } catch (e) {
       // If this Entry has a subscribe function and it threw an exception
       // (or an unsubscribe function it previously returned now throws),

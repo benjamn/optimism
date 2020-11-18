@@ -100,18 +100,15 @@ export function wrap<
       return originalFunction.apply(null, arguments as any);
     }
 
-    const args = Array.prototype.slice.call(arguments) as TArgs;
-
-    let entry = cache.get(key);
-    if (entry) {
-      entry.args = args;
-    } else {
-      entry = new Entry<TArgs, TResult>(originalFunction, args);
-      cache.set(key, entry);
+    let entry = cache.get(key)!;
+    if (!entry) {
+      cache.set(key, entry = new Entry(originalFunction));
       entry.subscribe = options.subscribe;
     }
 
-    const value = entry.recompute();
+    const value = entry.recompute(
+      Array.prototype.slice.call(arguments) as TArgs,
+    );
 
     // Move this entry to the front of the least-recently used queue,
     // since we just finished computing its value.
