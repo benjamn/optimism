@@ -1,7 +1,8 @@
+import { Trie } from "@wry/trie";
+
 import { Cache } from "./cache";
 import { Entry, AnyEntry } from "./entry";
 import { parentEntrySlot } from "./context";
-import { KeyTrie } from "./key-trie";
 
 // These helper functions are important for making optimism work with
 // asynchronous code. In order to register parent-child dependencies,
@@ -33,7 +34,7 @@ export type TCacheKey = any;
 // here. However, you may want to avoid defaultMakeCacheKey if your runtime
 // does not support WeakMap, or you have the ability to return a string key.
 // In those cases, just write your own custom makeCacheKey functions.
-const keyTrie = new KeyTrie<TCacheKey>(typeof WeakMap === "function");
+const keyTrie = new Trie<TCacheKey>(typeof WeakMap === "function");
 export function defaultMakeCacheKey(...args: any[]) {
   return keyTrie.lookupArray(args);
 }
@@ -41,7 +42,7 @@ export function defaultMakeCacheKey(...args: any[]) {
 // If you're paranoid about memory leaks, or you want to avoid using WeakMap
 // under the hood, but you still need the behavior of defaultMakeCacheKey,
 // import this constructor to create your own tries.
-export { KeyTrie }
+export { Trie as KeyTrie }
 
 export type OptimisticWrapperFunction<
   TArgs extends any[],
