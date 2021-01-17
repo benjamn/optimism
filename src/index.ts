@@ -103,7 +103,16 @@ export type OptimisticWrapOptions<
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
+  // If true, keys returned by makeCacheKey will be deleted from the LRU cache
+  // when they become unreachable. Defaults to true when WeakMap, WeakRef, and
+  // FinalizationRegistry are available. Otherwise always false.
+  useWeakKeys?: boolean,
 };
+
+const canUseWeakKeys =
+  typeof WeakMap === "function" &&
+  typeof WeakRef === "function" &&
+  typeof FinalizationRegistry === "function";
 
 const caches = new Set<Cache<any, AnyEntry>>();
 
@@ -125,10 +134,50 @@ export function wrap<
   const makeCacheKey = options.makeCacheKey ||
     makeDefaultMakeCacheKeyFunction<TKeyArgs, TCacheKey>();
 
+    // If options.useWeakKeys is true but canUseWeakKeys is false, the
+  // useWeakKeys variable must be false, since the FinalizationRegistry
+  // cannot be simulated or polyfilled.
+  const useWeakKeys = options.useWeakKeys === void 0
+    ? canUseWeakKeys
+    : canUseWeakKeys && !!options.useWeakKeys;
+
+  // Optional WeakMap mapping object keys returned by makeCacheKey to
+  // empty object references that will be stored in the cache instead of
+  // the original key object. Undefined/unused if useWeakKeys is false.
+  // It's tempting to use WeakRef objects instead of empty objects, but
+  // we never actually need to call .deref(), and using WeakRef here
+  // noticeably slows down cache performance.
+  const weakRefs = useWeakKeys
+    ? new WeakMap<object, {}>()
+    : void 0;
+
+  // Optional registry allowing empty key references to be deleted from
+  // the cache after the original key objects become unreachable.
+  const registry = useWeakKeys
+    ? new FinalizationRegistry(ref => cache.delete(ref))
+    : void 0;
+
+  // Wrapper for makeCacheKey that promotes object keys to empty reference
+  // objects, allowing the original key objects to be reclaimed by the
+  // garbage collector, which triggers the deletion of the references from
+  // the cache, using the registry, when useWeakKeys is true. Non-object
+  // keys returned by makeCacheKey (e.g. strings) are preserved.
+  function makeKey(keyArgs: IArguments | TKeyArgs) {
+    let key = makeCacheKey.apply(null, keyArgs as TKeyArgs);
+    if (useWeakKeys && key && typeof key === "object") {
+      let ref = weakRefs!.get(key)!;
+      if (!ref) {
+        weakRefs!.set(key, ref = {});
+        registry!.register(key, ref);
+      }
+      key = ref;
+    }
+    return key;
+  }
+
   const optimistic = function (): TResult {
-    const key = makeCacheKey.apply(
-      null,
-      keyArgs ? keyArgs.apply(null, arguments as any) : arguments as any
+    const key = makeKey(
+      keyArgs ? keyArgs.apply(null, arguments as any) : arguments
     );
 
     if (key === void 0) {
@@ -173,7 +222,7 @@ export function wrap<
   }
   optimistic.dirtyKey = dirtyKey;
   optimistic.dirty = function dirty() {
-    dirtyKey(makeCacheKey.apply(null, arguments as any));
+    dirtyKey(makeKey(arguments));
   };
 
   function peekKey(key: TCacheKey) {
@@ -184,7 +233,7 @@ export function wrap<
   }
   optimistic.peekKey = peekKey;
   optimistic.peek = function peek() {
-    return peekKey(makeCacheKey.apply(null, arguments as any));
+    return peekKey(makeKey(arguments));
   };
 
   function forgetKey(key: TCacheKey) {
@@ -192,13 +241,15 @@ export function wrap<
   }
   optimistic.forgetKey = forgetKey;
   optimistic.forget = function forget() {
-    return forgetKey(makeCacheKey.apply(null, arguments as any));
+    return forgetKey(makeKey(arguments));
   };
 
   optimistic.makeCacheKey = makeCacheKey;
   optimistic.getKey = keyArgs ? function getKey() {
-    return makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
-  } : makeCacheKey as (...args: any[]) => TCacheKey;
+    return makeKey(keyArgs.apply(null, arguments as any));
+  } : function getKey() {
+    return makeKey(arguments);
+  };
 
   return Object.freeze(optimistic);
 }
