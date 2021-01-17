@@ -22,15 +22,15 @@ export class Cache<K = any, V = any> {
   }
 
   public get(key: K): V | undefined {
-    const entry = this.getEntry(key);
-    return entry && entry.value;
+    const node = this.getNode(key);
+    return node && node.value;
   }
 
-  private getEntry(key: K): Node<K, V> | undefined {
-    const entry = this.map.get(key);
+  private getNode(key: K): Node<K, V> | undefined {
+    const node = this.map.get(key);
 
-    if (entry && entry !== this.newest) {
-      const { older, newer } = entry;
+    if (node && node !== this.newest) {
+      const { older, newer } = node;
 
       if (newer) {
         newer.older = older;
@@ -40,43 +40,43 @@ export class Cache<K = any, V = any> {
         older.newer = newer;
       }
 
-      entry.older = this.newest;
-      entry.older!.newer = entry;
+      node.older = this.newest;
+      node.older!.newer = node;
 
-      entry.newer = null;
-      this.newest = entry;
+      node.newer = null;
+      this.newest = node;
 
-      if (entry === this.oldest) {
+      if (node === this.oldest) {
         this.oldest = newer;
       }
     }
 
-    return entry;
+    return node;
   }
 
   public set(key: K, value: V): V {
-    let entry = this.getEntry(key);
-    if (entry) {
-      return entry.value = value;
+    let node = this.getNode(key);
+    if (node) {
+      return node.value = value;
     }
 
-    entry = {
-      key: key,
-      value: value,
+    node = {
+      key,
+      value,
       newer: null,
       older: this.newest
     };
 
     if (this.newest) {
-      this.newest.newer = entry;
+      this.newest.newer = node;
     }
 
-    this.newest = entry;
-    this.oldest = this.oldest || entry;
+    this.newest = node;
+    this.oldest = this.oldest || node;
 
-    this.map.set(key, entry);
+    this.map.set(key, node);
 
-    return entry.value;
+    return node.value;
   }
 
   public clean() {
@@ -86,26 +86,26 @@ export class Cache<K = any, V = any> {
   }
 
   public delete(key: K): boolean {
-    const entry = this.map.get(key);
-    if (entry) {
-      if (entry === this.newest) {
-        this.newest = entry.older;
+    const node = this.map.get(key);
+    if (node) {
+      if (node === this.newest) {
+        this.newest = node.older;
       }
 
-      if (entry === this.oldest) {
-        this.oldest = entry.newer;
+      if (node === this.oldest) {
+        this.oldest = node.newer;
       }
 
-      if (entry.newer) {
-        entry.newer.older = entry.older;
+      if (node.newer) {
+        node.newer.older = node.older;
       }
 
-      if (entry.older) {
-        entry.older.newer = entry.newer;
+      if (node.older) {
+        node.older.newer = node.newer;
       }
 
       this.map.delete(key);
-      this.dispose(entry.value, key);
+      this.dispose(node.value, key);
 
       return true;
     }
