@@ -92,11 +92,15 @@ export function wrap<
     entry => entry.dispose(),
   );
 
-  const keyArgs = options.keyArgs || ((...args: TArgs): TKeyArgs => args as any);
+  const keyArgs = options.keyArgs;
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
   function optimistic(): TResult {
-    const key = makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
+    const key = makeCacheKey.apply(
+      null,
+      keyArgs ? keyArgs.apply(null, arguments as any) : arguments as any
+    );
+
     if (key === void 0) {
       return originalFunction.apply(null, arguments as any);
     }
