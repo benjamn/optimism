@@ -43,11 +43,11 @@
     "rollup": "^2.9.1",
     "rollup-plugin-typescript2": "^0.30.0",
     "source-map-support": "^0.5.19",
-    "tslib": "^1.14.1",
+    "tslib": "^2.1.0",
     "typescript": "^4.0.3"
   },
   "dependencies": {
-    "@wry/context": "^0.5.2",
-    "@wry/trie": "^0.2.1"
+    "@wry/context": "^0.6.0",
+    "@wry/trie": "^0.3.0"
   }
 }
