@@ -619,4 +619,46 @@ describe("optimism", function () {
     assert.strictEqual(sumFirst.forget("7" as any), false);
     assert.strictEqual((sumFirst.forget as any)(6, 4), false);
   });
+
+  it("allows forgetting entries by key", function () {
+    const ns: number[] = [];
+    const sumFirst = wrap(function (n: number): number {
+      ns.push(n);
+      return n < 1 ? 0 : n + sumFirst(n - 1);
+    }, {
+        makeCacheKey: function (x: number) {
+          return x * 2;
+        }
+    });
+
+    assert.strictEqual(sumFirst(10), 55);
+
+    /*
+     * Verify:
+     * 1- Calling forgetKey will remove the entry.
+     * 2- Calling forgetKey again will return false.
+     * 3- Callling forget on the same entry will return false.
+     */
+    assert.strictEqual(sumFirst.forgetKey(6 * 2), true);
+    assert.strictEqual(sumFirst.forgetKey(6 * 2), false);
+    assert.strictEqual(sumFirst.forget(6), false);
+
+    /*
+     * Verify:
+     * 1- Calling forget will remove the entry.
+     * 2- Calling forget again will return false.
+     * 3- Callling forgetKey on the same entry will return false.
+     */
+    assert.strictEqual(sumFirst.forget(7), true);
+    assert.strictEqual(sumFirst.forget(7), false);
+    assert.strictEqual(sumFirst.forgetKey(7 * 2), false);
+
+    /*
+     * Verify you can query an entry key.
+     */
+    assert.strictEqual(sumFirst.getKey(9), 18);
+    assert.strictEqual(sumFirst.forgetKey(sumFirst.getKey(9)), true);
+    assert.strictEqual(sumFirst.forgetKey(sumFirst.getKey(9)), false);
+    assert.strictEqual(sumFirst.forget(9), false);
+  });
 });

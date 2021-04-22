@@ -56,6 +56,10 @@ export type OptimisticWrapperFunction<
   peek: (...args: TKeyArgs) => TResult | undefined;
   // Remove the entry from the cache, dirtying any parent entries.
   forget: (...args: TKeyArgs) => boolean;
+  // Returns the key for the supplied arguments
+  getKey: (...args: TArgs) => any;
+  // Removes the entry from the cache using its key, dirtying any parent entries
+  forgetKey: (key: any) => boolean;
 };
 
 export type OptimisticWrapOptions<
@@ -155,6 +159,18 @@ export function wrap<
 
   optimistic.forget = function () {
     const key = makeCacheKey.apply(null, arguments as any);
+    return key !== void 0 && cache.delete(key);
+  };
+
+  optimistic.getKey = function () {
+    const key = makeCacheKey.apply(
+        null,
+        keyArgs ? keyArgs.apply(null, arguments as any) : arguments as any
+      );
+    return key;
+  };
+
+  optimistic.forgetKey = function (key: any) {
     return key !== void 0 && cache.delete(key);
   };
 
