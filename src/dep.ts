@@ -1,11 +1,18 @@
 import { AnyEntry } from "./entry";
 import { OptimisticWrapOptions } from "./index";
 import { parentEntrySlot } from "./context";
-import { Unsubscribable, maybeUnsubscribe } from "./helpers";
+import { hasOwnProperty, Unsubscribable, maybeUnsubscribe } from "./helpers";
+
+type EntryMethodName = keyof typeof EntryMethods;
+const EntryMethods = {
+  setDirty: true, // Mark parent Entry as needing to be recomputed (default)
+  dispose: true,  // Detach parent Entry from parents and children, but leave in LRU cache
+  forget: true,   // Fully remove parent Entry from LRU cache and computation graph
+};
 
 export type OptimisticDependencyFunction<TKey> =
   ((key: TKey) => void) & {
-    dirty: (key: TKey) => void;
+    dirty: (key: TKey, entryMethodName?: EntryMethodName) => void;
   };
 
 export type Dep<TKey> = Set<AnyEntry> & {
@@ -33,10 +40,17 @@ export function dep<TKey>(options?: {
     }
   }
 
-  depend.dirty = function dirty(key: TKey) {
+  depend.dirty = function dirty(
+    key: TKey,
+    entryMethodName?: EntryMethodName,
+  ) {
     const dep = depsByKey.get(key);
     if (dep) {
-      dep.forEach(entry => entry.setDirty());
+      const m: EntryMethodName = (
+        entryMethodName &&
+        hasOwnProperty.call(EntryMethods, entryMethodName)
+      ) ? entryMethodName : "setDirty";
+      dep.forEach(entry => entry[m]());
       depsByKey.delete(key);
       maybeUnsubscribe(dep);
     }

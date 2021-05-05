@@ -128,6 +128,9 @@ export function wrap<
     if (!entry) {
       cache.set(key, entry = new Entry(originalFunction));
       entry.subscribe = options.subscribe;
+      // Give the Entry the ability to trigger cache.delete(key), even though
+      // the Entry itself does not know about key or cache.
+      entry.forget = () => cache.delete(key);
     }
 
     const value = entry.recompute(

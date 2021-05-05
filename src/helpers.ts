@@ -1,3 +1,7 @@
+export const {
+  hasOwnProperty,
+} = Object.prototype;
+
 export type Unsubscribable = {
   unsubscribe?: void | (() => any);
 }
