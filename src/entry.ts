@@ -230,6 +230,7 @@ function reportDirtyChild(parent: AnyEntry, child: AnyEntry) {
   // reportDirtyChild(parent, child).
   assert(parent.childValues.has(child));
   assert(mightBeDirty(child));
+  const parentWasClean = !mightBeDirty(parent);
 
   if (! parent.dirtyChildren) {
     parent.dirtyChildren = emptySetPool.pop() || new Set;
@@ -242,7 +243,12 @@ function reportDirtyChild(parent: AnyEntry, child: AnyEntry) {
   }
 
   parent.dirtyChildren.add(child);
-  reportDirty(parent);
+
+  // If parent was clean before, it just became (possibly) dirty (according to
+  // mightBeDirty), since we just added child to parent.dirtyChildren.
+  if (parentWasClean) {
+    reportDirty(parent);
+  }
 }
 
 // Let a parent Entry know that one of its children is no longer dirty.
