@@ -73,6 +73,7 @@ export class Entry<TArgs extends any[], TValue> {
 
   public peek(): TValue | undefined {
     if (this.value.length === 1 && !mightBeDirty(this)) {
+      rememberParent(this);
       return this.value[0];
     }
   }
