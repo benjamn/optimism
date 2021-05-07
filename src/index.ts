@@ -52,14 +52,22 @@ export type OptimisticWrapperFunction<
   // The .dirty(...) method of an optimistic function takes exactly the
   // same parameter types as the original function.
   dirty: (...args: TKeyArgs) => void;
+  dirtyKey: (key: TCacheKey) => void;
   // Examine the current value without recomputing it.
   peek: (...args: TKeyArgs) => TResult | undefined;
+  peekKey: (key: TCacheKey) => TResult | undefined;
   // Remove the entry from the cache, dirtying any parent entries.
   forget: (...args: TKeyArgs) => boolean;
-  // Returns the key for the supplied arguments
-  getKey: (...args: TArgs) => any;
-  // Removes the entry from the cache using its key, dirtying any parent entries
-  forgetKey: (key: any) => boolean;
+  forgetKey: (key: TCacheKey) => boolean;
+  // In order to use the -Key version of the above functions, you need a key
+  // rather than the arguments used to compute the key. These two functions take
+  // TArgs or TKeyArgs and return the corresponding TCacheKey. If no keyArgs
+  // function has been configured, TArgs will be the same as TKeyArgs, and thus
+  // getKey and makeCacheKey will be synonymous.
+  getKey: (...args: TArgs) => TCacheKey;
+  // This property is equivalent to the makeCacheKey function provided in the
+  // OptimisticWrapOptions, or a default implementation of makeCacheKey.
+  makeCacheKey: (...args: TKeyArgs) => TCacheKey;
 };
 
 export type OptimisticWrapOptions<
@@ -99,7 +107,7 @@ export function wrap<
   const keyArgs = options.keyArgs;
   const makeCacheKey = options.makeCacheKey || defaultMakeCacheKey;
 
-  function optimistic(): TResult {
+  const optimistic = function (): TResult {
     const key = makeCacheKey.apply(
       null,
       keyArgs ? keyArgs.apply(null, arguments as any) : arguments as any
@@ -134,45 +142,44 @@ export function wrap<
     }
 
     return value;
-  }
+  } as OptimisticWrapperFunction<TArgs, TResult, TKeyArgs>;
 
-  function lookup(): Entry<TArgs, TResult> | undefined {
-    const key = makeCacheKey.apply(null, arguments as any);
-    if (key !== void 0) {
-      return cache.get(key);
-    }
-  }
-
-  optimistic.dirty = function () {
-    const entry = lookup.apply(null, arguments as any);
+  function dirtyKey(key: TCacheKey) {
+    const entry = cache.get(key);
     if (entry) {
       entry.setDirty();
     }
+  }
+  optimistic.dirtyKey = dirtyKey;
+  optimistic.dirty = function dirty() {
+    dirtyKey(makeCacheKey.apply(null, arguments as any));
   };
 
-  optimistic.peek = function () {
-    const entry = lookup.apply(null, arguments as any);
+  function peekKey(key: TCacheKey) {
+    const entry = cache.get(key);
     if (entry) {
       return entry.peek();
     }
+  }
+  optimistic.peekKey = peekKey;
+  optimistic.peek = function peek() {
+    return peekKey(makeCacheKey.apply(null, arguments as any));
   };
 
-  optimistic.forget = function () {
-    const key = makeCacheKey.apply(null, arguments as any);
-    return key !== void 0 && cache.delete(key);
+  function forgetKey(key: TCacheKey) {
+    return cache.delete(key);
+  }
+  optimistic.forgetKey = forgetKey;
+  optimistic.forget = function forget() {
+    return forgetKey(makeCacheKey.apply(null, arguments as any));
   };
 
-  optimistic.getKey = function () {
-    const key = makeCacheKey.apply(
-        null,
-        keyArgs ? keyArgs.apply(null, arguments as any) : arguments as any
-      );
-    return key;
+  optimistic.makeCacheKey = makeCacheKey;
+  optimistic.getKey = keyArgs ? function getKey() {
+    return makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
+  } : function getKey() {
+    return makeCacheKey.apply(null, arguments as any);
   };
 
-  optimistic.forgetKey = function (key: any) {
-    return key !== void 0 && cache.delete(key);
-  };
-
-  return optimistic as OptimisticWrapperFunction<TArgs, TResult, TKeyArgs>;
+  return Object.freeze(optimistic);
 }
