@@ -53,24 +53,35 @@ export type OptimisticWrapperFunction<
   TKeyArgs extends any[] = TArgs,
   TCacheKey = any,
 > = ((...args: TArgs) => TResult) & {
-  // The .dirty(...) method of an optimistic function takes exactly the
-  // same parameter types as the original function.
+  // "Dirty" any cached Entry stored for the given arguments, marking that Entry
+  // and its ancestors as potentially needing to be recomputed. The .dirty(...)
+  // method of an optimistic function takes the same parameter types as the
+  // original function by default, unless a keyArgs function is configured, and
+  // then it matters that .dirty takes TKeyArgs instead of TArgs.
   dirty: (...args: TKeyArgs) => void;
+  // A version of .dirty that accepts a key returned by .getKey.
   dirtyKey: (key: TCacheKey) => void;
+
   // Examine the current value without recomputing it.
   peek: (...args: TKeyArgs) => TResult | undefined;
+  // A version of .peek that accepts a key returned by .getKey.
   peekKey: (key: TCacheKey) => TResult | undefined;
-  // Remove the entry from the cache, dirtying any parent entries.
+
+  // Completely remove the entry from the cache, dirtying any parent entries.
   forget: (...args: TKeyArgs) => boolean;
+  // A version of .forget that accepts a key returned by .getKey.
   forgetKey: (key: TCacheKey) => boolean;
+
   // In order to use the -Key version of the above functions, you need a key
   // rather than the arguments used to compute the key. These two functions take
   // TArgs or TKeyArgs and return the corresponding TCacheKey. If no keyArgs
   // function has been configured, TArgs will be the same as TKeyArgs, and thus
   // getKey and makeCacheKey will be synonymous.
   getKey: (...args: TArgs) => TCacheKey;
+
   // This property is equivalent to the makeCacheKey function provided in the
-  // OptimisticWrapOptions, or a default implementation of makeCacheKey.
+  // OptimisticWrapOptions, or (if no options.makeCacheKey function is provided)
+  // a default implementation of makeCacheKey.
   makeCacheKey: (...args: TKeyArgs) => TCacheKey;
 };
 
