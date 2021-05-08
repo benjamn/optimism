@@ -104,8 +104,7 @@ export class Entry<TArgs extends any[], TValue> {
   }
 
   public dispose() {
-    forgetChildren(this);
-    maybeUnsubscribe(this);
+    this.setDirty();
 
     // Because this entry has been kicked out of the cache (in index.js),
     // we've lost the ability to find out if/when this entry becomes dirty,
@@ -122,6 +121,13 @@ export class Entry<TArgs extends any[], TValue> {
       parent.setDirty();
       forgetChild(parent, this);
     });
+  }
+
+  public forget() {
+    // The code that creates Entry objects in index.ts will replace this method
+    // with one that actually removes the Entry from the cache, which will also
+    // trigger the entry.dispose method.
+    this.dispose();
   }
 
   private deps: Set<Dep<any>> | null = null;
