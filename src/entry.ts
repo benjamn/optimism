@@ -1,7 +1,7 @@
 import { parentEntrySlot } from "./context";
 import { OptimisticWrapOptions } from "./index";
 import { Dep } from "./dep";
-import { maybeUnsubscribe, Unsubscribable } from "./helpers";
+import { maybeUnsubscribe, toArray, Unsubscribable } from "./helpers";
 
 const emptySetPool: Set<any>[] = [];
 const POOL_TARGET_SIZE = 100;
@@ -97,7 +97,6 @@ export class Entry<TArgs extends any[], TValue> {
     this.dirty = true;
     this.value.length = 0;
     reportDirty(this);
-    forgetChildren(this);
     // We can go ahead and unsubscribe here, since any further dirty
     // notifications we receive will be redundant, and unsubscribing may
     // free up some resources, e.g. file watchers.
@@ -106,6 +105,11 @@ export class Entry<TArgs extends any[], TValue> {
 
   public dispose() {
     this.setDirty();
+
+    // Sever any dependency relationships with our own children, so those
+    // children don't retain this parent Entry in their child.parents sets,
+    // thereby preventing it from being fully garbage collected.
+    forgetChildren(this);
 
     // Because this entry has been kicked out of the cache (in index.js),
     // we've lost the ability to find out if/when this entry becomes dirty,
@@ -118,7 +122,7 @@ export class Entry<TArgs extends any[], TValue> {
     // each parent, but that would leave this entry in parent.childValues
     // and parent.dirtyChildren, which would prevent the child from being
     // truly forgotten.
-    this.parents.forEach(parent => {
+    eachParent(this, (parent, child) => {
       parent.setDirty();
       forgetChild(parent, this);
     });
@@ -143,7 +147,7 @@ export class Entry<TArgs extends any[], TValue> {
 
   public forgetDeps() {
     if (this.deps) {
-      this.deps.forEach(dep => dep.delete(this));
+      toArray(this.deps).forEach(dep => dep.delete(this));
       this.deps.clear();
       emptySetPool.push(this.deps);
       this.deps = null;
@@ -217,11 +221,24 @@ function setClean(entry: AnyEntry) {
 }
 
 function reportDirty(child: AnyEntry) {
-  child.parents.forEach(parent => reportDirtyChild(parent, child));
+  eachParent(child, reportDirtyChild);
 }
 
 function reportClean(child: AnyEntry) {
-  child.parents.forEach(parent => reportCleanChild(parent, child));
+  eachParent(child, reportCleanChild);
+}
+
+function eachParent(
+  child: AnyEntry,
+  callback: (parent: AnyEntry, child: AnyEntry) => any,
+) {
+  const parentCount = child.parents.size;
+  if (parentCount) {
+    const parents = toArray(child.parents);
+    for (let i = 0; i < parentCount; ++i) {
+      callback(parents[i], child);
+    }
+  }
 }
 
 // Let a parent Entry know that one of its children may be dirty.

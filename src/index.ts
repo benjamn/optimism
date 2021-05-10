@@ -53,6 +53,9 @@ export type OptimisticWrapperFunction<
   TKeyArgs extends any[] = TArgs,
   TCacheKey = any,
 > = ((...args: TArgs) => TResult) & {
+  // Get the current number of Entry objects in the LRU cache.
+  readonly size: number;
+
   // "Dirty" any cached Entry stored for the given arguments, marking that Entry
   // and its ancestors as potentially needing to be recomputed. The .dirty(...)
   // method of an optimistic function takes the same parameter types as the
@@ -164,6 +167,14 @@ export function wrap<
 
     return value;
   } as OptimisticWrapperFunction<TArgs, TResult, TKeyArgs, TCacheKey>;
+
+  Object.defineProperty(optimistic, "size", {
+    get() {
+      return cache["map"].size;
+    },
+    configurable: false,
+    enumerable: false,
+  });
 
   function dirtyKey(key: TCacheKey) {
     const entry = cache.get(key);

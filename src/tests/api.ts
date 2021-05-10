@@ -6,6 +6,7 @@ import {
   OptimisticWrapperFunction,
 } from "../index";
 import { wrapYieldingFiberMethods } from '@wry/context';
+import { dep } from "../dep";
 
 type NumThunk = OptimisticWrapperFunction<[], number>;
 
@@ -660,5 +661,47 @@ describe("optimism", function () {
     assert.strictEqual(sumFirst.forgetKey(sumFirst.getKey(9)), true);
     assert.strictEqual(sumFirst.forgetKey(sumFirst.getKey(9)), false);
     assert.strictEqual(sumFirst.forget(9), false);
+  });
+
+  it("exposes optimistic.size property, returning cache.map.size", function () {
+    const d = dep<string>();
+    const fib = wrap((n: number): number => {
+      d("shared");
+      return n > 1 ? fib(n - 1) + fib(n - 2) : n;
+    }, {
+      makeCacheKey(n) {
+        return n;
+      },
+    });
+
+    assert.strictEqual(fib.size, 0);
+
+    assert.strictEqual(fib(0), 0);
+    assert.strictEqual(fib(1), 1);
+    assert.strictEqual(fib(2), 1);
+    assert.strictEqual(fib(3), 2);
+    assert.strictEqual(fib(4), 3);
+    assert.strictEqual(fib(5), 5);
+    assert.strictEqual(fib(6), 8);
+    assert.strictEqual(fib(7), 13);
+    assert.strictEqual(fib(8), 21);
+
+    assert.strictEqual(fib.size, 9);
+
+    fib.dirty(6);
+    // Merely dirtying an Entry does not remove it from the LRU cache.
+    assert.strictEqual(fib.size, 9);
+
+    fib.forget(6);
+    // Forgetting an Entry both dirties it and removes it from the LRU cache.
+    assert.strictEqual(fib.size, 8);
+
+    fib.forget(4);
+    assert.strictEqual(fib.size, 7);
+
+    // This way of calling d.dirty causes any parent Entry objects to be
+    // forgotten (removed from the LRU cache).
+    d.dirty("shared", "forget");
+    assert.strictEqual(fib.size, 0);
   });
 });
