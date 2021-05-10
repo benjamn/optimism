@@ -97,7 +97,6 @@ export class Entry<TArgs extends any[], TValue> {
     this.dirty = true;
     this.value.length = 0;
     reportDirty(this);
-    forgetChildren(this);
     // We can go ahead and unsubscribe here, since any further dirty
     // notifications we receive will be redundant, and unsubscribing may
     // free up some resources, e.g. file watchers.
@@ -106,6 +105,11 @@ export class Entry<TArgs extends any[], TValue> {
 
   public dispose() {
     this.setDirty();
+
+    // Sever any dependency relationships with our own children, so those
+    // children don't retain this parent Entry in their child.parents sets,
+    // thereby preventing it from being fully garbage collected.
+    forgetChildren(this);
 
     // Because this entry has been kicked out of the cache (in index.js),
     // we've lost the ability to find out if/when this entry becomes dirty,
