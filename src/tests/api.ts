@@ -127,7 +127,8 @@ describe("optimism", function () {
     });
   });
 
-  it("is not confused by fibers", function () {
+  // The fibers coroutine library no longer works with Node.js v16.
+  it.skip("is not confused by fibers", function () {
     const Fiber = wrapYieldingFiberMethods(require("fibers"));
 
     const order = [];
