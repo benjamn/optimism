@@ -352,7 +352,7 @@ describe("optimism", function () {
       try {
         fn();
         throw new Error("should not get here");
-      } catch (e) {
+      } catch (e: any) {
         assert.strictEqual(e.message, "already recomputing");
       }
 
@@ -424,12 +424,12 @@ describe("optimism", function () {
       if (chaos) {
         try {
           sumOdd(10);
-        } catch (e) {
+        } catch (e: any) {
           assert.strictEqual(e.message, "already recomputing");
         }
         try {
           sumEven(10);
-        } catch (e) {
+        } catch (e: any) {
           assert.strictEqual(e.message, "already recomputing");
         }
       } else {
