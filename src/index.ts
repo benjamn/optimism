@@ -112,6 +112,9 @@ export type OptimisticWrapOptions<
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
   makeCacheKey?: (...args: NoInfer<TKeyArgs>) => TCacheKey | undefined;
+  // Called when a new value is computed to allow efficient normalization of
+  // results over time, for example by returning older if equal(newer, older).
+  normalizeResult?: (newer: TResult, older: TResult) => TResult;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
@@ -137,8 +140,9 @@ export function wrap<
   TCacheKey = any,
 >(originalFunction: (...args: TArgs) => TResult, {
   max = Math.pow(2, 16),
-  makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
   keyArgs,
+  makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
+  normalizeResult,
   subscribe,
   cache: cacheOption = StrongCache,
 }: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
@@ -160,6 +164,7 @@ export function wrap<
     let entry = cache.get(key)!;
     if (!entry) {
       cache.set(key, entry = new Entry(originalFunction));
+      entry.normalizeResult = normalizeResult;
       entry.subscribe = subscribe;
       // Give the Entry the ability to trigger cache.delete(key), even though
       // the Entry itself does not know about key or cache.
@@ -195,8 +200,9 @@ export function wrap<
 
   Object.freeze(optimistic.options = {
     max,
-    makeCacheKey,
     keyArgs,
+    makeCacheKey,
+    normalizeResult,
     subscribe,
     cache,
   });

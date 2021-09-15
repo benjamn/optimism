@@ -50,6 +50,7 @@ export type AnyEntry = Entry<any, any>;
 export class Entry<TArgs extends any[], TValue> {
   public static count = 0;
 
+  public normalizeResult: OptimisticWrapOptions<TArgs, any, any, TValue>["normalizeResult"];
   public subscribe: OptimisticWrapOptions<TArgs>["subscribe"];
   public unsubscribe: Unsubscribable["unsubscribe"];
 
@@ -95,7 +96,6 @@ export class Entry<TArgs extends any[], TValue> {
   public setDirty() {
     if (this.dirty) return;
     this.dirty = true;
-    this.value.length = 0;
     reportDirty(this);
     // We can go ahead and unsubscribe here, since any further dirty
     // notifications we receive will be redundant, and unsubscribing may
@@ -191,15 +191,38 @@ function reallyRecompute(entry: AnyEntry, args: any[]) {
 
 function recomputeNewValue(entry: AnyEntry, args: any[]) {
   entry.recomputing = true;
-  // Set entry.value as unknown.
+
+  const { normalizeResult } = entry;
+  let oldValueCopy: Value<any> | undefined;
+  if (normalizeResult && entry.value.length === 1) {
+    oldValueCopy = valueCopy(entry.value);
+  }
+
+  // Make entry.value an empty array, representing an unknown value.
   entry.value.length = 0;
+
   try {
     // If entry.fn succeeds, entry.value will become a normal Value.
     entry.value[0] = entry.fn.apply(null, args);
+
+    // If we have a viable oldValueCopy to compare with the (successfully
+    // recomputed) new entry.value, and they are not already === identical, give
+    // normalizeResult a chance to pick/choose/reuse parts of oldValueCopy[0]
+    // and/or entry.value[0] to determine the final cached entry.value.
+    if (normalizeResult && oldValueCopy && !valueIs(oldValueCopy, entry.value)) {
+      try {
+        entry.value[0] = normalizeResult(entry.value[0], oldValueCopy[0]);
+      } catch {
+        // If normalizeResult throws, just use the newer value, rather than
+        // saving the exception as entry.value[1].
+      }
+    }
+
   } catch (e) {
-    // If entry.fn throws, entry.value will become exceptional.
+    // If entry.fn throws, entry.value will hold that exception.
     entry.value[1] = e;
   }
+
   // Either way, this line is always reached.
   entry.recomputing = false;
 }

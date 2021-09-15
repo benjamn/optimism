@@ -6,8 +6,10 @@ import {
   OptimisticWrapperFunction,
   CommonCache,
 } from "../index";
+import { equal } from '@wry/equality';
 import { wrapYieldingFiberMethods } from '@wry/context';
 import { dep } from "../dep";
+import { permutations } from "./test-utils";
 
 type NumThunk = OptimisticWrapperFunction<[], number>;
 
@@ -569,24 +571,49 @@ describe("optimism", function () {
     const keyArgs: () => [] = () => [];
     function makeCacheKey() { return "constant"; }
     function subscribe() {}
+    let normalizeCalls: [number, number][] = [];
+    function normalizeResult(newer: number, older: number) {
+      normalizeCalls.push([newer, older]);
+      return newer;
+    }
 
     let counter1 = 0;
     const wrapped = wrap(() => ++counter1, {
       max: 10,
       keyArgs,
       makeCacheKey,
+      normalizeResult,
       subscribe,
     });
     assert.strictEqual(wrapped.options.max, 10);
     assert.strictEqual(wrapped.options.keyArgs, keyArgs);
     assert.strictEqual(wrapped.options.makeCacheKey, makeCacheKey);
+    assert.strictEqual(wrapped.options.normalizeResult, normalizeResult);
     assert.strictEqual(wrapped.options.subscribe, subscribe);
+
+    assert.deepEqual(normalizeCalls, []);
+    assert.strictEqual(wrapped(), 1);
+    assert.deepEqual(normalizeCalls, []);
+    assert.strictEqual(wrapped(), 1);
+    assert.deepEqual(normalizeCalls, []);
+    wrapped.dirty();
+    assert.deepEqual(normalizeCalls, []);
+    assert.strictEqual(wrapped(), 2);
+    assert.deepEqual(normalizeCalls, [[2, 1]]);
+    assert.strictEqual(wrapped(), 2);
+    wrapped.dirty();
+    assert.strictEqual(wrapped(), 3);
+    assert.deepEqual(normalizeCalls, [[2, 1], [3, 2]]);
+    assert.strictEqual(wrapped(), 3);
+    assert.deepEqual(normalizeCalls, [[2, 1], [3, 2]]);
+    assert.strictEqual(wrapped(), 3);
 
     let counter2 = 0;
     const wrappedWithDefaults = wrap(() => ++counter2);
     assert.strictEqual(wrappedWithDefaults.options.max, Math.pow(2, 16));
     assert.strictEqual(wrappedWithDefaults.options.keyArgs, void 0);
     assert.strictEqual(typeof wrappedWithDefaults.options.makeCacheKey, "function");
+    assert.strictEqual(wrappedWithDefaults.options.normalizeResult, void 0);
     assert.strictEqual(wrappedWithDefaults.options.subscribe, void 0);
   });
 
@@ -800,5 +827,142 @@ describe("optimism", function () {
     // forgotten (removed from the LRU cache).
     d.dirty("shared", "forget");
     assert.strictEqual(size(), 0);
+  });
+
+  describe("wrapOptions.normalizeResult", function () {
+    it("can normalize array results", function () {
+      const normalizeArgs: [number[], number[]][] = [];
+      const range = wrap((n: number) => {
+        let result = [];
+        for (let i = 0; i < n; ++i) {
+          result[i] = i;
+        }
+        return result;
+      }, {
+        normalizeResult(newer, older) {
+          normalizeArgs.push([newer, older]);
+          return equal(newer, older) ? older : newer;
+        },
+      });
+
+      const r3a = range(3);
+      assert.deepStrictEqual(r3a, [0, 1, 2]);
+      // Nothing surprising, just regular caching.
+      assert.strictEqual(r3a, range(3));
+
+      // Force range(3) to be recomputed below.
+      range.dirty(3);
+
+      const r3b = range(3);
+      assert.deepStrictEqual(r3b, [0, 1, 2]);
+
+      assert.strictEqual(r3a, r3b);
+
+      assert.deepStrictEqual(normalizeArgs, [
+        [r3b, r3a],
+      ]);
+      // Though r3a and r3b ended up ===, the normalizeResult callback should
+      // have been called with two !== arrays.
+      assert.notStrictEqual(
+        normalizeArgs[0][0],
+        normalizeArgs[0][1],
+      );
+    });
+
+    it("can normalize recursive array results", function () {
+      const range = wrap((n: number): number[] => {
+        if (n <= 0) return [];
+        return range(n - 1).concat(n - 1);
+      }, {
+        normalizeResult: (newer, older) => equal(newer, older) ? older : newer,
+      });
+
+      const ranges = [
+        range(0),
+        range(1),
+        range(2),
+        range(3),
+        range(4),
+      ];
+
+      assert.deepStrictEqual(ranges[0], []);
+      assert.deepStrictEqual(ranges[1], [0]);
+      assert.deepStrictEqual(ranges[2], [0, 1]);
+      assert.deepStrictEqual(ranges[3], [0, 1, 2]);
+      assert.deepStrictEqual(ranges[4], [0, 1, 2, 3]);
+
+      const perms = permutations(ranges[4]);
+      assert.strictEqual(perms.length, 4 * 3 * 2 * 1);
+
+      // For each permutation of the range sizes, check that strict equality
+      // holds for r[i] and range(i) for all i after dirtying each number.
+      let count = 0;
+      perms.forEach(perm => {
+        perm.forEach(toDirty => {
+          range.dirty(toDirty);
+          perm.forEach(i => {
+            assert.strictEqual(ranges[i], range(i));
+            ++count;
+          });
+        })
+      });
+      assert.strictEqual(count, perms.length * 4 * 4);
+    });
+
+    it("exceptions thrown by normalizeResult are ignored", function () {
+      const normalizeCalls: [string | number, string | number][] = [];
+
+      const maybeThrow = wrap((value: string | number, shouldThrow: boolean) => {
+        if (shouldThrow) throw value;
+        return value;
+      }, {
+        makeCacheKey(value, shouldThrow) {
+          return JSON.stringify({
+            // Coerce the value to a string so we can trigger normalizeResult
+            // using either 2 or "2" below.
+            value: String(value),
+            shouldThrow,
+          });
+        },
+        normalizeResult(a, b) {
+          normalizeCalls.push([a, b]);
+          throw new Error("from normalizeResult (expected)");
+        },
+      });
+
+      assert.strictEqual(maybeThrow(1, false), 1);
+      assert.strictEqual(maybeThrow(2, false), 2);
+
+      maybeThrow.dirty(2, false);
+      assert.strictEqual(maybeThrow("2", false), "2");
+      assert.strictEqual(maybeThrow(2, false), "2");
+      maybeThrow.dirty(2, false);
+      assert.strictEqual(maybeThrow(2, false), 2);
+      assert.strictEqual(maybeThrow("2", false), 2);
+
+      assert.throws(
+        () => maybeThrow(3, true),
+        error => error === 3,
+      );
+
+      assert.throws(
+        () => maybeThrow("3", true),
+        // Still 3 because the previous maybeThrow(3, true) exception is cached.
+        error => error === 3,
+      );
+
+      maybeThrow.dirty(3, true);
+      assert.throws(
+        () => maybeThrow("3", true),
+        error => error === "3",
+      );
+
+      // Even though the exception thrown by normalizeResult was ignored, check
+      // that it was in fact called (twice).
+      assert.deepStrictEqual(normalizeCalls, [
+        ["2", 2],
+        [2, "2"],
+      ]);
+    });
   });
 });
