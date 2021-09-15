@@ -41,10 +41,10 @@ describe("exceptions", function () {
       if (n < 2) throw n;
       try {
         fib(n - 1);
-      } catch (minusOne) {
+      } catch (minusOne: any) {
         try {
           fib(n - 2);
-        } catch (minusTwo) {
+        } catch (minusTwo: any) {
           throw minusOne + minusTwo;
         }
       }

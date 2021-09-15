@@ -6,9 +6,13 @@ describe("asyncFromGen", function () {
     assert.strictEqual(typeof asyncFromGen, "function");
   });
 
-  it("works like an async function", asyncFromGen(function*() {
+  it("works like an async function", asyncFromGen(function*(): Generator<
+    number | Promise<number>,
+    Promise<string>,
+    number
+  > {
     let sum = 0;
-    const limit = yield new Promise(resolve => {
+    const limit = yield new Promise<number>(resolve => {
       setTimeout(() => resolve(10), 10);
     });
     for (let i = 0; i < limit; ++i) {
@@ -19,7 +23,11 @@ describe("asyncFromGen", function () {
   }));
 
   it("properly handles exceptions", async function () {
-    const fn = asyncFromGen(function*(throwee?: object) {
+    const fn = asyncFromGen(function*(throwee?: object): Generator<
+      Promise<string> | object,
+      string,
+      string
+    > {
       const result = yield Promise.resolve("ok");
       if (throwee) {
         throw yield throwee;
@@ -51,7 +59,7 @@ describe("asyncFromGen", function () {
       try {
         yield Promise.reject(new Error("expected"));
         throw new Error("not reached");
-      } catch (error) {
+      } catch (error: any) {
         assert.strictEqual(error.message, "expected");
       }
       return "ok";
@@ -64,7 +72,11 @@ describe("asyncFromGen", function () {
 
   it("can be cached", async function () {
     let parentCounter = 0;
-    const parent = wrap(asyncFromGen(function*(x: number) {
+    const parent = wrap(asyncFromGen(function*(x: number): Generator<
+      Promise<number>,
+      number,
+      number
+    > {
       ++parentCounter;
       const a = yield new Promise<number>(resolve => setTimeout(() => {
         resolve(child(x));
