@@ -147,7 +147,10 @@ export class Entry<TArgs extends any[], TValue> {
 
   public forgetDeps() {
     if (this.deps) {
-      toArray(this.deps).forEach(dep => dep.delete(this));
+      toArray(this.deps).forEach(dep => {
+        dep.delete(this);
+        dep.cleanup();
+      });
       this.deps.clear();
       emptySetPool.push(this.deps);
       this.deps = null;
