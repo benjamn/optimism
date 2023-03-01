@@ -111,6 +111,10 @@ export class Entry<TArgs extends any[], TValue> {
     // thereby preventing it from being fully garbage collected.
     forgetChildren(this);
 
+    // Remove this Entry from any sets to which it was added by the
+    // addToSet method (and do a cleanup).
+    this.forgetDeps(true);
+
     // Because this entry has been kicked out of the cache (in index.js),
     // we've lost the ability to find out if/when this entry becomes dirty,
     // whether that happens through a subscription, because of a direct call
@@ -145,9 +149,14 @@ export class Entry<TArgs extends any[], TValue> {
     this.deps.add(dep);
   }
 
-  public forgetDeps() {
+  public forgetDeps(cleanup = false) {
     if (this.deps) {
-      toArray(this.deps).forEach(dep => dep.delete(this));
+      toArray(this.deps).forEach(dep => {
+        dep.delete(this);
+        if (cleanup) {
+          dep.cleanup();
+        }
+      });
       this.deps.clear();
       emptySetPool.push(this.deps);
       this.deps = null;
@@ -176,6 +185,10 @@ function rememberParent(child: AnyEntry) {
 
 function reallyRecompute(entry: AnyEntry, args: any[]) {
   forgetChildren(entry);
+
+  // Remove this Entry from any sets to which it was added by the
+  // addToSet method.
+  entry.forgetDeps();
 
   // Set entry as the parent entry while calling recomputeNewValue(entry).
   parentEntrySlot.withValue(entry, recomputeNewValue, [entry, args]);
@@ -312,10 +325,6 @@ function forgetChildren(parent: AnyEntry) {
       forgetChild(parent, child);
     });
   }
-
-  // Remove this parent Entry from any sets to which it was added by the
-  // addToSet method.
-  parent.forgetDeps();
 
   // After we forget all our children, this.dirtyChildren must be empty
   // and therefore must have been reset to null.
