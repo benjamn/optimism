@@ -1,6 +1,3 @@
-import typescriptPlugin from 'rollup-plugin-typescript2';
-import typescript from 'typescript';
-
 const globals = {
   __proto__: null,
   tslib: "tslib",
@@ -24,34 +21,23 @@ function build(input, output, format) {
       sourcemap: true,
       globals
     },
-    plugins: [
-      typescriptPlugin({
-        typescript,
-        tsconfig: "./tsconfig.rollup.json"
-      })
-    ]
-  }
+  };
 }
 
 export default [
   build(
-    "src/index.ts",
-    "lib/bundle.esm.js",
-    "esm"
-  ),
-  build(
-    "src/index.ts",
-    "lib/bundle.cjs.js",
+    "lib/index.js",
+    "lib/bundle.cjs",
     "cjs"
   ),
   build(
-    "src/tests/main.ts",
-    "lib/tests/bundle.esm.js",
+    "lib/tests/main.js",
+    "lib/tests/bundle.js",
     "esm"
   ),
   build(
-    "src/tests/main.ts",
-    "lib/tests/bundle.cjs.js",
+    "lib/tests/main.js",
+    "lib/tests/bundle.cjs",
     "cjs"
   ),
 ];

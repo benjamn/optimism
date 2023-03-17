@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { wrap } from "..";
+import { wrap } from "../index";
 
 describe("exceptions", function () {
   it("should be cached", function () {
