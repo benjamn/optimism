@@ -1,7 +1,7 @@
-import { parentEntrySlot } from "./context";
-import { OptimisticWrapOptions } from "./index";
-import { Dep } from "./dep";
-import { maybeUnsubscribe, toArray, Unsubscribable } from "./helpers";
+import { parentEntrySlot } from "./context.js";
+import { OptimisticWrapOptions } from "./index.js";
+import { Dep } from "./dep.js";
+import { maybeUnsubscribe, toArray, Unsubscribable } from "./helpers.js";
 
 const emptySetPool: Set<any>[] = [];
 const POOL_TARGET_SIZE = 100;

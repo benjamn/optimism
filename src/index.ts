@@ -1,8 +1,8 @@
 import { Trie } from "@wry/trie";
 
-import { Cache } from "./cache";
-import { Entry, AnyEntry } from "./entry";
-import { parentEntrySlot } from "./context";
+import { Cache } from "./cache.js";
+import { Entry, AnyEntry } from "./entry.js";
+import { parentEntrySlot } from "./context.js";
 
 // These helper functions are important for making optimism work with
 // asynchronous code. In order to register parent-child dependencies,
@@ -15,13 +15,13 @@ export {
   noContext,
   setTimeout,
   asyncFromGen,
-} from "./context";
+} from "./context.js";
 
 // A lighter-weight dependency, similar to OptimisticWrapperFunction, except
 // with only one argument, no makeCacheKey, no wrapped function to recompute,
 // and no result value. Useful for representing dependency leaves in the graph
 // of computation. Subscriptions are supported.
-export { dep, OptimisticDependencyFunction } from "./dep";
+export { dep, OptimisticDependencyFunction } from "./dep.js";
 
 function makeDefaultMakeCacheKeyFunction<
   TKeyArgs extends any[],
