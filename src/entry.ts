@@ -149,7 +149,7 @@ export class Entry<TArgs extends any[], TValue> {
     this.deps.add(dep);
   }
 
-  public forgetDeps(cleanup = false) {
+  public forgetDeps(cleanup?: boolean) {
     if (this.deps) {
       toArray(this.deps).forEach(dep => {
         dep.delete(this);
