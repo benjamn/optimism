@@ -56,6 +56,9 @@ export type OptimisticWrapperFunction<
   // Get the current number of Entry objects in the LRU cache.
   readonly size: number;
 
+  // Snapshot of wrap options used to create this wrapper function.
+  options: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey>;
+
   // "Dirty" any cached Entry stored for the given arguments, marking that Entry
   // and its ancestors as potentially needing to be recomputed. The .dirty(...)
   // method of an optimistic function takes the same parameter types as the
@@ -115,18 +118,16 @@ export function wrap<
   TResult,
   TKeyArgs extends any[] = TArgs,
   TCacheKey = any,
->(
-  originalFunction: (...args: TArgs) => TResult,
-  options: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null),
-) {
+>(originalFunction: (...args: TArgs) => TResult, {
+  max = Math.pow(2, 16),
+  makeCacheKey = makeDefaultMakeCacheKeyFunction<TKeyArgs, TCacheKey>(),
+  keyArgs,
+  subscribe,
+}: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null)) {
   const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
-    options.max || Math.pow(2, 16),
+    max,
     entry => entry.dispose(),
   );
-
-  const keyArgs = options.keyArgs;
-  const makeCacheKey = options.makeCacheKey ||
-    makeDefaultMakeCacheKeyFunction<TKeyArgs, TCacheKey>();
 
   const optimistic = function (): TResult {
     const key = makeCacheKey.apply(
@@ -141,7 +142,7 @@ export function wrap<
     let entry = cache.get(key)!;
     if (!entry) {
       cache.set(key, entry = new Entry(originalFunction));
-      entry.subscribe = options.subscribe;
+      entry.subscribe = subscribe;
       // Give the Entry the ability to trigger cache.delete(key), even though
       // the Entry itself does not know about key or cache.
       entry.forget = () => cache.delete(key);
@@ -174,6 +175,13 @@ export function wrap<
     },
     configurable: false,
     enumerable: false,
+  });
+
+  Object.freeze(optimistic.options = {
+    max,
+    makeCacheKey,
+    keyArgs,
+    subscribe,
   });
 
   function dirtyKey(key: TCacheKey) {

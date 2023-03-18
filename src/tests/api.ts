@@ -502,6 +502,31 @@ describe("optimism", function () {
     assert.strictEqual(sumNums("a", 1, "b", 2, "c", 3), sumObj2);
   });
 
+  it("supports wrap(fn, {...}).options to reflect input options", function () {
+    const keyArgs: () => [] = () => [];
+    function makeCacheKey() { return "constant"; }
+    function subscribe() {}
+
+    let counter1 = 0;
+    const wrapped = wrap(() => ++counter1, {
+      max: 10,
+      keyArgs,
+      makeCacheKey,
+      subscribe,
+    });
+    assert.strictEqual(wrapped.options.max, 10);
+    assert.strictEqual(wrapped.options.keyArgs, keyArgs);
+    assert.strictEqual(wrapped.options.makeCacheKey, makeCacheKey);
+    assert.strictEqual(wrapped.options.subscribe, subscribe);
+
+    let counter2 = 0;
+    const wrappedWithDefaults = wrap(() => ++counter2);
+    assert.strictEqual(wrappedWithDefaults.options.max, Math.pow(2, 16));
+    assert.strictEqual(wrappedWithDefaults.options.keyArgs, void 0);
+    assert.strictEqual(typeof wrappedWithDefaults.options.makeCacheKey, "function");
+    assert.strictEqual(wrappedWithDefaults.options.subscribe, void 0);
+  });
+
   it("tolerates cycles when propagating dirty/clean signals", function () {
     let counter = 0;
     const dep = wrap(() => ++counter);
@@ -540,6 +565,8 @@ describe("optimism", function () {
       }, {
         max: 10
       });
+
+    assert.strictEqual(fib.options.max, 10);
 
     assert.strictEqual(fib(78), 8944394323791464);
     assert.strictEqual(fib(68), 72723460248141);
@@ -633,6 +660,7 @@ describe("optimism", function () {
         }
     });
 
+    assert.strictEqual(sumFirst.options.makeCacheKey!(7), 14);
     assert.strictEqual(sumFirst(10), 55);
 
     /*
