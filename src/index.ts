@@ -23,16 +23,6 @@ export {
 // of computation. Subscriptions are supported.
 export { dep, OptimisticDependencyFunction } from "./dep.js";
 
-function makeDefaultMakeCacheKeyFunction<
-  TKeyArgs extends any[],
-  TCacheKey = any,
->(): (...args: TKeyArgs) => TCacheKey {
-  const keyTrie = new Trie<TCacheKey>(typeof WeakMap === "function");
-  return function () {
-    return keyTrie.lookupArray(arguments);
-  };
-}
-
 // The defaultMakeCacheKey function is remarkably powerful, because it gives
 // a unique object for any shallow-identical list of arguments. If you need
 // to implement a custom makeCacheKey function, you may find it helpful to
@@ -40,7 +30,13 @@ function makeDefaultMakeCacheKeyFunction<
 // here. However, you may want to avoid defaultMakeCacheKey if your runtime
 // does not support WeakMap, or you have the ability to return a string key.
 // In those cases, just write your own custom makeCacheKey functions.
-export const defaultMakeCacheKey = makeDefaultMakeCacheKeyFunction();
+let defaultKeyTrie: Trie<object> | undefined;
+export function defaultMakeCacheKey(...args: any[]): object {
+  const trie = defaultKeyTrie || (
+    defaultKeyTrie = new Trie(typeof WeakMap === "function")
+  );
+  return trie.lookupArray(args);
+}
 
 // If you're paranoid about memory leaks, or you want to avoid using WeakMap
 // under the hood, but you still need the behavior of defaultMakeCacheKey,
@@ -120,7 +116,7 @@ export function wrap<
   TCacheKey = any,
 >(originalFunction: (...args: TArgs) => TResult, {
   max = Math.pow(2, 16),
-  makeCacheKey = makeDefaultMakeCacheKeyFunction<TKeyArgs, TCacheKey>(),
+  makeCacheKey = defaultMakeCacheKey,
   keyArgs,
   subscribe,
 }: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null)) {
