@@ -28,7 +28,8 @@
     "url": "https://github.com/benjamn/optimism/issues"
   },
   "scripts": {
-    "build": "npm run clean && tsc && rollup -c",
+    "build": "npm run clean && npm run tsc:es5 && tsc && rollup -c && rimraf lib/es5",
+    "tsc:es5": "tsc -p tsconfig.es5.json",
     "clean": "rimraf lib",
     "prepare": "npm run build",
     "mocha": "mocha --require source-map-support/register --reporter spec --full-trace",
