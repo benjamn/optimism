@@ -1,7 +1,7 @@
-import { AnyEntry } from "./entry";
-import { OptimisticWrapOptions } from "./index";
-import { parentEntrySlot } from "./context";
-import { hasOwnProperty, Unsubscribable, maybeUnsubscribe, toArray } from "./helpers";
+import { AnyEntry } from "./entry.js";
+import { OptimisticWrapOptions } from "./index.js";
+import { parentEntrySlot } from "./context.js";
+import { hasOwnProperty, Unsubscribable, maybeUnsubscribe, toArray } from "./helpers.js";
 
 type EntryMethodName = keyof typeof EntryMethods;
 const EntryMethods = {

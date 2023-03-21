@@ -14,8 +14,9 @@
     "tracker",
     "memoization"
   ],
-  "main": "lib/bundle.cjs.js",
-  "module": "lib/bundle.esm.js",
+  "type": "module",
+  "main": "lib/bundle.cjs",
+  "module": "lib/index.js",
   "types": "lib/index.d.ts",
   "license": "MIT",
   "homepage": "https://github.com/benjamn/optimism#readme",
@@ -27,23 +28,24 @@
     "url": "https://github.com/benjamn/optimism/issues"
   },
   "scripts": {
-    "build": "npm run clean && tsc --emitDeclarationOnly && rollup -c",
+    "build": "npm run clean && npm run tsc:es5 && tsc && rollup -c && rimraf lib/es5",
+    "tsc:es5": "tsc -p tsconfig.es5.json",
     "clean": "rimraf lib",
-    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace test.js",
-    "prepublish": "npm run build",
-    "test": "npm run build && npm run mocha"
+    "prepare": "npm run build",
+    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace",
+    "test:cjs": "npm run mocha -- lib/tests/bundle.cjs",
+    "test:esm": "npm run mocha -- lib/tests/bundle.js",
+    "test": "npm run test:esm && npm run test:cjs"
   },
   "devDependencies": {
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.9.1",
     "mocha": "^9.1.1",
-    "reify": "^0.20.12",
     "rimraf": "^3.0.2",
-    "rollup": "^2.9.1",
-    "rollup-plugin-typescript2": "^0.30.0",
+    "rollup": "^3.20.0",
     "source-map-support": "^0.5.19",
-    "tslib": "^2.1.0",
-    "typescript": "^4.0.3"
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.2"
   },
   "dependencies": {
     "@wry/context": "^0.7.0",

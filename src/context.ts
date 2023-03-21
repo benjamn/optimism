@@ -1,5 +1,5 @@
-import { AnyEntry } from "./entry";
 import { Slot } from "@wry/context";
+import { AnyEntry } from "./entry.js";
 
 export const parentEntrySlot = new Slot<AnyEntry>();
 

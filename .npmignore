@@ -6,4 +6,5 @@
 .reify-cache
 tsconfig.json
 tsconfig.rollup.json
+tsconfig.es5.json
 rollup.config.js

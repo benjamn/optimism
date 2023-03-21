@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { wrap, setTimeout, asyncFromGen, noContext } from '..';
+import { wrap, setTimeout, asyncFromGen, noContext } from '../index.js';
 
 describe("asyncFromGen", function () {
   it("is importable", function () {
