@@ -23,16 +23,6 @@ export {
 // of computation. Subscriptions are supported.
 export { dep, OptimisticDependencyFunction } from "./dep.js";
 
-function makeDefaultMakeCacheKeyFunction<
-  TKeyArgs extends any[],
-  TCacheKey = any,
->(): (...args: TKeyArgs) => TCacheKey {
-  const keyTrie = new Trie<TCacheKey>(typeof WeakMap === "function");
-  return function () {
-    return keyTrie.lookupArray(arguments);
-  };
-}
-
 // The defaultMakeCacheKey function is remarkably powerful, because it gives
 // a unique object for any shallow-identical list of arguments. If you need
 // to implement a custom makeCacheKey function, you may find it helpful to
@@ -40,7 +30,13 @@ function makeDefaultMakeCacheKeyFunction<
 // here. However, you may want to avoid defaultMakeCacheKey if your runtime
 // does not support WeakMap, or you have the ability to return a string key.
 // In those cases, just write your own custom makeCacheKey functions.
-export const defaultMakeCacheKey = makeDefaultMakeCacheKeyFunction();
+let defaultKeyTrie: Trie<object> | undefined;
+export function defaultMakeCacheKey(...args: any[]): object {
+  const trie = defaultKeyTrie || (
+    defaultKeyTrie = new Trie(typeof WeakMap === "function")
+  );
+  return trie.lookupArray(args);
+}
 
 // If you're paranoid about memory leaks, or you want to avoid using WeakMap
 // under the hood, but you still need the behavior of defaultMakeCacheKey,
@@ -55,6 +51,9 @@ export type OptimisticWrapperFunction<
 > = ((...args: TArgs) => TResult) & {
   // Get the current number of Entry objects in the LRU cache.
   readonly size: number;
+
+  // Snapshot of wrap options used to create this wrapper function.
+  options: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey>;
 
   // "Dirty" any cached Entry stored for the given arguments, marking that Entry
   // and its ancestors as potentially needing to be recomputed. The .dirty(...)
@@ -115,18 +114,16 @@ export function wrap<
   TResult,
   TKeyArgs extends any[] = TArgs,
   TCacheKey = any,
->(
-  originalFunction: (...args: TArgs) => TResult,
-  options: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null),
-) {
+>(originalFunction: (...args: TArgs) => TResult, {
+  max = Math.pow(2, 16),
+  makeCacheKey = defaultMakeCacheKey,
+  keyArgs,
+  subscribe,
+}: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null)) {
   const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
-    options.max || Math.pow(2, 16),
+    max,
     entry => entry.dispose(),
   );
-
-  const keyArgs = options.keyArgs;
-  const makeCacheKey = options.makeCacheKey ||
-    makeDefaultMakeCacheKeyFunction<TKeyArgs, TCacheKey>();
 
   const optimistic = function (): TResult {
     const key = makeCacheKey.apply(
@@ -141,7 +138,7 @@ export function wrap<
     let entry = cache.get(key)!;
     if (!entry) {
       cache.set(key, entry = new Entry(originalFunction));
-      entry.subscribe = options.subscribe;
+      entry.subscribe = subscribe;
       // Give the Entry the ability to trigger cache.delete(key), even though
       // the Entry itself does not know about key or cache.
       entry.forget = () => cache.delete(key);
@@ -174,6 +171,13 @@ export function wrap<
     },
     configurable: false,
     enumerable: false,
+  });
+
+  Object.freeze(optimistic.options = {
+    max,
+    makeCacheKey,
+    keyArgs,
+    subscribe,
   });
 
   function dirtyKey(key: TCacheKey) {
