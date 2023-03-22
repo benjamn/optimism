@@ -1,5 +1,12 @@
+import { Slot } from "@wry/context";
 import * as assert from "assert";
-import { wrap, setTimeout, asyncFromGen, noContext } from '../index.js';
+import {
+  wrap,
+  setTimeout,
+  asyncFromGen,
+  noContext,
+  nonReactive,
+} from '../index.js';
 
 describe("asyncFromGen", function () {
   it("is importable", function () {
@@ -153,5 +160,49 @@ describe("noContext", function () {
     assert.deepEqual(parent(), [3, 2]);
     parent.dirty();
     assert.deepEqual(parent(), [4, 2]);
+  });
+});
+
+describe("nonReactive", function () {
+  const otherSlot = new Slot<string>();
+
+  it("censors only optimism-related context", function () {
+    let innerCounter = 0;
+    const inner = wrap(() => ++innerCounter);
+    const outer = wrap(() => ({
+      fromInner: nonReactive(() => inner()),
+      fromOther: nonReactive(() => otherSlot.getValue()),
+    }));
+    assert.strictEqual(otherSlot.getValue(), undefined);
+    otherSlot.withValue("preserved", () => {
+      assert.deepEqual(outer(), { fromInner: 1, fromOther: "preserved" });
+      assert.deepEqual(outer(), { fromInner: 1, fromOther: "preserved" });
+      inner.dirty();
+      assert.deepEqual(outer(), { fromInner: 1, fromOther: "preserved" });
+      assert.strictEqual(inner(), 2);
+      outer.dirty();
+      assert.deepEqual(outer(), { fromInner: 2, fromOther: "preserved" });
+    });
+    assert.strictEqual(otherSlot.getValue(), undefined);
+  });
+
+  it("same test using noContext, for comparison", function () {
+    let innerCounter = 0;
+    const inner = wrap(() => ++innerCounter);
+    const outer = wrap(() => ({
+      fromInner: noContext(inner),
+      fromOther: noContext(() => otherSlot.getValue()),
+    }));
+    assert.strictEqual(otherSlot.getValue(), undefined);
+    otherSlot.withValue("preserved", () => {
+      assert.deepEqual(outer(), { fromInner: 1, fromOther: void 0 });
+      assert.deepEqual(outer(), { fromInner: 1, fromOther: void 0 });
+      inner.dirty();
+      assert.deepEqual(outer(), { fromInner: 1, fromOther: void 0 });
+      assert.strictEqual(inner(), 2);
+      outer.dirty();
+      assert.deepEqual(outer(), { fromInner: 2, fromOther: void 0 });
+    });
+    assert.strictEqual(otherSlot.getValue(), undefined);
   });
 });
