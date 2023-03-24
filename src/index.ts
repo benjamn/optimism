@@ -13,6 +13,7 @@ import { parentEntrySlot } from "./context.js";
 export {
   bindContext,
   noContext,
+  nonReactive,
   setTimeout,
   asyncFromGen,
 } from "./context.js";
