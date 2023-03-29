@@ -17,7 +17,6 @@ export type OptimisticDependencyFunction<TKey> =
 
 export type Dep<TKey> = Set<AnyEntry> & {
   subscribe: OptimisticWrapOptions<[TKey]>["subscribe"];
-  cleanup: () => void,
 } & Unsubscribable;
 
 export function dep<TKey>(options?: {
@@ -29,14 +28,9 @@ export function dep<TKey>(options?: {
   function depend(key: TKey) {
     const parent = parentEntrySlot.getValue();
     if (parent) {
-      let dep = depsByKey.get(key) as Dep<TKey>;
+      let dep = depsByKey.get(key);
       if (!dep) {
         depsByKey.set(key, dep = new Set as Dep<TKey>);
-        dep.cleanup = () => {
-          if (dep.size === 0) {
-            depsByKey.delete(key);
-          }
-        };
       }
       parent.dependOn(dep);
       if (typeof subscribe === "function") {
