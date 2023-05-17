@@ -1,3 +1,5 @@
+import { readFile, writeFile } from "fs/promises";
+
 const globals = {
   __proto__: null,
   tslib: "tslib",
@@ -21,6 +23,17 @@ function build(input, output, format) {
       sourcemap: true,
       globals
     },
+    ...(output.endsWith(".cjs") ? { plugins: [
+      { // Inspired by https://github.com/apollographql/apollo-client/pull/9716,
+        // this workaround ensures compatibility with versions of React Native
+        // that refuse to load .cjs modules as CommonJS (to be fixed in v0.72):
+        name: "copy *.cjs to *.cjs.native.js",
+        async writeBundle({ file }) {
+          const buffer = await readFile(file);
+          await writeFile(file + ".native.js", buffer);
+        },
+      },
+    ]} : null),
   };
 }
 
