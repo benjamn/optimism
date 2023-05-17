@@ -1,7 +1,7 @@
 import { parentEntrySlot } from "./context.js";
 import { OptimisticWrapOptions } from "./index.js";
 import { Dep } from "./dep.js";
-import { maybeUnsubscribe, toArray, Unsubscribable } from "./helpers.js";
+import { maybeUnsubscribe, arrayFromSet, Unsubscribable } from "./helpers.js";
 
 const emptySetPool: Set<any>[] = [];
 const POOL_TARGET_SIZE = 100;
@@ -147,7 +147,7 @@ export class Entry<TArgs extends any[], TValue> {
 
   public forgetDeps() {
     if (this.deps) {
-      toArray(this.deps).forEach(dep => dep.delete(this));
+      arrayFromSet(this.deps).forEach(dep => dep.delete(this));
       this.deps.clear();
       emptySetPool.push(this.deps);
       this.deps = null;
@@ -234,7 +234,7 @@ function eachParent(
 ) {
   const parentCount = child.parents.size;
   if (parentCount) {
-    const parents = toArray(child.parents);
+    const parents = arrayFromSet(child.parents);
     for (let i = 0; i < parentCount; ++i) {
       callback(parents[i], child);
     }
