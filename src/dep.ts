@@ -13,10 +13,12 @@ const EntryMethods = {
 export type OptimisticDependencyFunction<TKey> =
   ((key: TKey) => void) & {
     dirty: (key: TKey, entryMethodName?: EntryMethodName) => void;
+    keyCount: () => number;
   };
 
 export type Dep<TKey> = Set<AnyEntry> & {
   subscribe: OptimisticWrapOptions<[TKey]>["subscribe"];
+  cleanup: () => void;
 } & Unsubscribable;
 
 export function dep<TKey>(options?: {
@@ -31,6 +33,12 @@ export function dep<TKey>(options?: {
       let dep = depsByKey.get(key);
       if (!dep) {
         depsByKey.set(key, dep = new Set as Dep<TKey>);
+        dep.cleanup = () => {
+          if (dep?.size === 0 && dep === depsByKey.get(key)) {
+            maybeUnsubscribe(dep);
+            depsByKey.delete(key);
+          }
+        }
       }
       parent.dependOn(dep);
       if (typeof subscribe === "function") {
@@ -58,6 +66,10 @@ export function dep<TKey>(options?: {
       maybeUnsubscribe(dep);
     }
   };
+
+  depend.keyCount = function() {
+    return depsByKey.size;
+  }
 
   return depend as OptimisticDependencyFunction<TKey>;
 }
