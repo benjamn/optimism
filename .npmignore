@@ -1,10 +1,5 @@
 /node_modules
-/src
 /lib/tests
-.travis.yml
-.rpt2_cache
-.reify-cache
 tsconfig.json
-tsconfig.rollup.json
 tsconfig.es5.json
 rollup.config.js
