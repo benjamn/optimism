@@ -55,9 +55,9 @@ export function dep<TKey>(options?: {
         entryMethodName &&
         hasOwnProperty.call(EntryMethods, entryMethodName)
       ) ? entryMethodName : "setDirty";
-      // We have to use setToArray(dep).forEach instead of dep.forEach, because
-      // modifying a Set while iterating over it can cause elements in the Set
-      // to be removed from the Set before they've been iterated over.
+      // We have to use arrayFromSet(dep).forEach instead of dep.forEach,
+      // because modifying a Set while iterating over it can cause elements in
+      // the Set to be removed from the Set before they've been iterated over.
       arrayFromSet(dep).forEach(entry => entry[m]());
       depsByKey.delete(key);
       maybeUnsubscribe(dep);
