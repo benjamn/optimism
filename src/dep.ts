@@ -1,7 +1,12 @@
 import { AnyEntry } from "./entry.js";
 import { OptimisticWrapOptions } from "./index.js";
 import { parentEntrySlot } from "./context.js";
-import { hasOwnProperty, Unsubscribable, maybeUnsubscribe, toArray } from "./helpers.js";
+import {
+  hasOwnProperty,
+  Unsubscribable,
+  maybeUnsubscribe,
+  arrayFromSet,
+ } from "./helpers.js";
 
 type EntryMethodName = keyof typeof EntryMethods;
 const EntryMethods = {
@@ -50,10 +55,10 @@ export function dep<TKey>(options?: {
         entryMethodName &&
         hasOwnProperty.call(EntryMethods, entryMethodName)
       ) ? entryMethodName : "setDirty";
-      // We have to use toArray(dep).forEach instead of dep.forEach, because
+      // We have to use setToArray(dep).forEach instead of dep.forEach, because
       // modifying a Set while iterating over it can cause elements in the Set
       // to be removed from the Set before they've been iterated over.
-      toArray(dep).forEach(entry => entry[m]());
+      arrayFromSet(dep).forEach(entry => entry[m]());
       depsByKey.delete(key);
       maybeUnsubscribe(dep);
     }
