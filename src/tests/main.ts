@@ -5,3 +5,4 @@ import "./key-trie";
 import "./context";
 import "./exceptions";
 import "./performance";
+import "./weakCache";

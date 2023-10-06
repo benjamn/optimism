@@ -26,6 +26,10 @@ export class Cache<K = any, V = any> {
     return node && node.value;
   }
 
+  public get size() {
+    return this.map.size;
+  }
+
   private getNode(key: K): Node<K, V> | undefined {
     const node = this.map.get(key);
 

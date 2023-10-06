@@ -1,6 +1,6 @@
 import { Trie } from "@wry/trie";
 
-import { Cache } from "./cache.js";
+import { Cache as StrongCache } from "./cache.js";
 import { Entry, AnyEntry } from "./entry.js";
 import { parentEntrySlot } from "./context.js";
 
@@ -88,10 +88,24 @@ export type OptimisticWrapperFunction<
   makeCacheKey: (...args: TKeyArgs) => TCacheKey;
 };
 
+export interface CommonCache<K,V> {
+  has(key: K): boolean;
+  get(key: K): V | undefined;
+  set(key: K, value: V): V;
+  delete(key: K): boolean;
+  clean(): void;
+  readonly size: number;
+}
+
+export interface CommonCacheConstructor<K, V> {
+  new <K,V>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
+}
+
 export type OptimisticWrapOptions<
   TArgs extends any[],
   TKeyArgs extends any[] = TArgs,
   TCacheKey = any,
+  TResult = any,
 > = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
@@ -106,9 +120,10 @@ export type OptimisticWrapOptions<
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
+  Cache?: CommonCacheConstructor<TCacheKey, TResult>
 };
 
-const caches = new Set<Cache<any, AnyEntry>>();
+const caches = new Set<CommonCache<any, AnyEntry>>();
 
 export function wrap<
   TArgs extends any[],
@@ -120,6 +135,7 @@ export function wrap<
   makeCacheKey = defaultMakeCacheKey,
   keyArgs,
   subscribe,
+  Cache = StrongCache
 }: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null)) {
   const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
     max,
@@ -168,7 +184,7 @@ export function wrap<
 
   Object.defineProperty(optimistic, "size", {
     get() {
-      return cache["map"].size;
+      return cache.size;
     },
     configurable: false,
     enumerable: false,
