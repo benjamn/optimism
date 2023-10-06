@@ -32,7 +32,7 @@
     "tsc:es5": "tsc -p tsconfig.es5.json",
     "clean": "rimraf lib",
     "prepare": "npm run build",
-    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace",
+    "mocha": "mocha --require source-map-support/register --reporter spec --full-trace -n expose-gc",
     "test:cjs": "npm run mocha -- lib/tests/bundle.cjs",
     "test:esm": "npm run mocha -- lib/tests/bundle.js",
     "test": "npm run test:esm && npm run test:cjs"

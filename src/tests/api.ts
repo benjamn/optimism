@@ -7,6 +7,8 @@ import {
 } from "../index";
 import { wrapYieldingFiberMethods } from '@wry/context';
 import { dep } from "../dep";
+import { WeakCache } from "../weakCache";
+import { Cache } from "../cache";
 
 type NumThunk = OptimisticWrapperFunction<[], number>;
 
@@ -14,6 +16,36 @@ describe("optimism", function () {
   it("sanity", function () {
     assert.strictEqual(typeof wrap, "function");
     assert.strictEqual(typeof defaultMakeCacheKey, "function");
+  });
+
+  it("can manually set the `Cache` to `WeakCache`", async () => {
+    let cache: WeakCache
+    wrap((obj: { value: string }) => obj.value, {
+      Cache: (class extends WeakCache {
+        constructor(...args: ConstructorParameters<typeof WeakCache>) {
+          super(...args)
+          cache = this
+        } 
+      }) as typeof WeakCache
+    });
+    // can't access the cache otherwise, so we can only test if the `Cache`
+    // argument constructor was called, not if it's actually used internally
+    assert.ok(cache! instanceof WeakCache);
+  });
+
+  it("can manually set the `Cache` to `Cache`", () => {
+    let cache: Cache
+    wrap((obj: { value: string }) => obj.value, {
+      Cache: (class extends Cache {
+        constructor(...args: ConstructorParameters<typeof Cache>) {
+          super(...args)
+          cache = this
+        } 
+      }) as typeof Cache
+    });
+    // can't access the cache otherwise, so we can only test if the `Cache`
+    // argument constructor was called, not if it's actually used internally
+    assert.ok(cache! instanceof Cache);
   });
 
   it("works with single functions", function () {

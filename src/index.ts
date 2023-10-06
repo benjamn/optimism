@@ -97,9 +97,11 @@ export interface CommonCache<K,V> {
   readonly size: number;
 }
 
-export interface CommonCacheConstructor<K, V> {
-  new <K,V>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
+export interface CommonCacheConstructor<TCacheKey, TResult, TArgs extends any[]> {
+  new <K extends TCacheKey, V extends Entry<TArgs, TResult>>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
 }
+
+type NoInfer<T> = [T][T extends any ? 0 : never];
 
 export type OptimisticWrapOptions<
   TArgs extends any[],
@@ -116,11 +118,11 @@ export type OptimisticWrapOptions<
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
-  makeCacheKey?: (...args: TKeyArgs) => TCacheKey;
+  makeCacheKey?: (...args: NoInfer<TKeyArgs>) => TCacheKey;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
-  Cache?: CommonCacheConstructor<TCacheKey, TResult>
+  Cache?: CommonCacheConstructor<NoInfer<TCacheKey>, NoInfer<TResult>, NoInfer<TArgs>>
 };
 
 const caches = new Set<CommonCache<any, AnyEntry>>();
@@ -132,11 +134,11 @@ export function wrap<
   TCacheKey = any,
 >(originalFunction: (...args: TArgs) => TResult, {
   max = Math.pow(2, 16),
-  makeCacheKey = defaultMakeCacheKey,
+  makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
   keyArgs,
   subscribe,
   Cache = StrongCache
-}: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null)) {
+}: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
   const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
     max,
     entry => entry.dispose(),
