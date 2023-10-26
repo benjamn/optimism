@@ -101,7 +101,7 @@ export class WeakCache<K extends object = any, V = any> {
     this.newest = node;
     this.oldest = this.oldest || node;
 
-    this.registry.register(key, node);
+    this.registry.register(key, node, node);
     this.map.set(key, node);
     this.size++;
 
@@ -133,6 +133,7 @@ export class WeakCache<K extends object = any, V = any> {
     this.size--;
     const key = node.keyRef.deref();
     this.dispose(node.value, key);
+    this.registry.unregister(node);
     if (key) this.map.delete(key);
   }
 
