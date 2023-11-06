@@ -1,4 +1,3 @@
-import { Slot } from "@wry/context";
 import * as assert from "assert";
 import {
   wrap,
@@ -6,6 +5,7 @@ import {
   asyncFromGen,
   noContext,
   nonReactive,
+  Slot,
 } from '../index.js';
 
 describe("asyncFromGen", function () {
