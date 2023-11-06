@@ -42,7 +42,7 @@
     "@types/node": "^20.2.5",
     "mocha": "^10.2.0",
     "rimraf": "^5.0.0",
-    "rollup": "^3.20.0",
+    "rollup": "^4.3.0",
     "source-map-support": "^0.5.19",
     "typescript": "^5.0.2"
   },
