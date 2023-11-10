@@ -1,3 +1,5 @@
+import type { CommonCache } from ".";
+
 interface Node<K, V> {
   key: K;
   value: V;
@@ -7,7 +9,7 @@ interface Node<K, V> {
 
 function defaultDispose() {}
 
-export class Cache<K = any, V = any> {
+export class Cache<K = any, V = any> implements CommonCache<K, V> {
   private map = new Map<K, Node<K, V>>();
   private newest: Node<K, V> | null = null;
   private oldest: Node<K, V> | null = null;
@@ -24,6 +26,10 @@ export class Cache<K = any, V = any> {
   public get(key: K): V | undefined {
     const node = this.getNode(key);
     return node && node.value;
+  }
+
+  public get size(): number {
+    return this.map.size
   }
 
   private getNode(key: K): Node<K, V> | undefined {

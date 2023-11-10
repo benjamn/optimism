@@ -4,6 +4,7 @@ import {
   wrap,
   defaultMakeCacheKey,
   OptimisticWrapperFunction,
+  CommonCache,
 } from "../index";
 import { wrapYieldingFiberMethods } from '@wry/context';
 import { dep } from "../dep";
@@ -34,6 +35,41 @@ describe("optimism", function () {
 
     test.dirty("a");
     assert.strictEqual(test("a"), "aNaCl");
+  });
+
+  it("can manually set the `Cache` implementation", () => {
+    let cache!: Cache<any, any>;
+
+    class Cache<K, V> implements CommonCache<K, V> {
+      private _cache = new Map<K, V>()
+      constructor() {
+        cache = this;
+      }
+      has = this._cache.has.bind(this._cache);
+      get = this._cache.get.bind(this._cache);
+      delete = this._cache.delete.bind(this._cache);
+      get size(){ return this._cache.size }
+      set(key: K, value: V): V {
+        this._cache.set(key, value);
+        return value;
+      }
+      clean(){};
+    }
+
+    const wrapped = wrap(
+      (obj: { value: string }) => obj.value + " transformed",
+      {
+        makeCacheKey(obj) {
+          return obj.value;
+        },
+        Cache,
+      }
+    );
+    assert.ok(cache instanceof Cache);
+    assert.strictEqual(wrapped({ value: "test" }), "test transformed");
+    assert.strictEqual(wrapped({ value: "test" }), "test transformed");
+    cache.get("test").value[0] = "test modified";
+    assert.strictEqual(wrapped({ value: "test" }), "test modified");
   });
 
   it("works with two layers of functions", function () {
