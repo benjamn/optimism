@@ -3,6 +3,7 @@ import { Trie } from "@wry/trie";
 import { StrongCache, CommonCache } from "@wry/caches";
 import { Entry, AnyEntry } from "./entry.js";
 import { parentEntrySlot } from "./context.js";
+import type { NoInfer } from "./helpers.js";
 
 // These helper functions are important for making optimism work with
 // asynchronous code. In order to register parent-child dependencies,
@@ -92,10 +93,6 @@ export { CommonCache }
 export interface CommonCacheConstructor<TCacheKey, TResult, TArgs extends any[]> {
   new <K extends TCacheKey, V extends Entry<TArgs, TResult>>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
 }
-
-type NoInfer<T> = [T][T extends any ? 0 : never];
-
-
 
 export type OptimisticWrapOptions<
   TArgs extends any[],
