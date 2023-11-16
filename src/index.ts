@@ -1,6 +1,6 @@
 import { Trie } from "@wry/trie";
 
-import { Cache as DefaultCache } from "./cache.js";
+import { StrongCache } from "@wry/caches";
 import { Entry, AnyEntry } from "./entry.js";
 import { parentEntrySlot } from "./context.js";
 
@@ -139,7 +139,7 @@ export function wrap<
   makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
   keyArgs,
   subscribe,
-  Cache = DefaultCache
+  Cache = StrongCache
 }: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
   const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
     max,

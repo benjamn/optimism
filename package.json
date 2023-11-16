@@ -47,6 +47,7 @@
     "typescript": "^5.0.2"
   },
   "dependencies": {
+    "@wry/caches": "^1.0.0",
     "@wry/context": "^0.7.0",
     "@wry/trie": "^0.4.3",
     "tslib": "^2.3.0"
