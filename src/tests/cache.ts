@@ -1,9 +1,9 @@
 import * as assert from "assert";
-import { Cache } from "../cache";
+import { StrongCache as Cache } from "@wry/caches";
 
 describe("least-recently-used cache", function () {
   it("can hold lots of elements", function () {
-    const cache = new Cache;
+    const cache = new Cache();
     const count = 1000000;
 
     for (let i = 0; i < count; ++i) {
@@ -72,8 +72,10 @@ describe("least-recently-used cache", function () {
 
       if (sequence.length > 0) {
         assert.strictEqual((cache as any).newest.key, sequence[0]);
-        assert.strictEqual((cache as any).oldest.key,
-                           sequence[sequence.length - 1]);
+        assert.strictEqual(
+          (cache as any).oldest.key,
+          sequence[sequence.length - 1]
+        );
       }
     }
 
