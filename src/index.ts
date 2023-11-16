@@ -1,6 +1,6 @@
 import { Trie } from "@wry/trie";
 
-import { StrongCache } from "@wry/caches";
+import { StrongCache, CommonCache } from "@wry/caches";
 import { Entry, AnyEntry } from "./entry.js";
 import { parentEntrySlot } from "./context.js";
 
@@ -88,15 +88,7 @@ export type OptimisticWrapperFunction<
   makeCacheKey: (...args: TKeyArgs) => TCacheKey;
 };
 
-export interface CommonCache<K,V> {
-  has(key: K): boolean;
-  get(key: K): V | undefined;
-  set(key: K, value: V): V;
-  delete(key: K): boolean;
-  clean(): void;
-  readonly size: number;
-}
-
+export { CommonCache }
 export interface CommonCacheConstructor<TCacheKey, TResult, TArgs extends any[]> {
   new <K extends TCacheKey, V extends Entry<TArgs, TResult>>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
 }
