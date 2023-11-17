@@ -38,13 +38,8 @@ describe("optimism", function () {
   });
 
   it("can manually set the `Cache` implementation", () => {
-    let cache!: Cache<any, any>;
-
     class Cache<K, V> implements CommonCache<K, V> {
       private _cache = new Map<K, V>()
-      constructor() {
-        cache = this;
-      }
       has = this._cache.has.bind(this._cache);
       get = this._cache.get.bind(this._cache);
       delete = this._cache.delete.bind(this._cache);
@@ -56,13 +51,15 @@ describe("optimism", function () {
       clean(){};
     }
 
+    const cache = new Cache<String, any>();
+
     const wrapped = wrap(
       (obj: { value: string }) => obj.value + " transformed",
       {
+        cache,
         makeCacheKey(obj) {
           return obj.value;
         },
-        Cache,
       }
     );
     assert.ok(cache instanceof Cache);

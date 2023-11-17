@@ -90,9 +90,6 @@ export type OptimisticWrapperFunction<
 };
 
 export { CommonCache }
-export interface CommonCacheConstructor<TCacheKey, TResult, TArgs extends any[]> {
-  new <K extends TCacheKey, V extends Entry<TArgs, TResult>>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
-}
 
 export type OptimisticWrapOptions<
   TArgs extends any[],
@@ -113,7 +110,7 @@ export type OptimisticWrapOptions<
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
-  Cache?: CommonCacheConstructor<NoInfer<TCacheKey>, NoInfer<TResult>, NoInfer<TArgs>>
+  cache?: CommonCache<NoInfer<TCacheKey>, Entry<NoInfer<TArgs>, NoInfer<TResult>>>;
 };
 
 const caches = new Set<CommonCache<any, AnyEntry>>();
@@ -128,13 +125,11 @@ export function wrap<
   makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
   keyArgs,
   subscribe,
-  Cache = StrongCache
-}: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
-  const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
+  cache = new StrongCache(
     max,
     entry => entry.dispose(),
-  );
-
+  ),
+}: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
   const optimistic = function (): TResult {
     const key = makeCacheKey.apply(
       null,
