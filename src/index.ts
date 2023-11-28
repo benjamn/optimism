@@ -16,6 +16,7 @@ export {
   nonReactive,
   setTimeout,
   asyncFromGen,
+  Slot,
 } from "./context.js";
 
 // A lighter-weight dependency, similar to OptimisticWrapperFunction, except

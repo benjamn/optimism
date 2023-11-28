@@ -7,6 +7,7 @@ export function nonReactive<R>(fn: () => R): R {
   return parentEntrySlot.withValue(void 0, fn);
 }
 
+export { Slot }
 export {
   bind as bindContext,
   noContext,
