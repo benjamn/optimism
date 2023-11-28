@@ -1,8 +1,9 @@
 import { Trie } from "@wry/trie";
 
-import { Cache } from "./cache.js";
+import { StrongCache, CommonCache } from "@wry/caches";
 import { Entry, AnyEntry } from "./entry.js";
 import { parentEntrySlot } from "./context.js";
+import type { NoInfer } from "./helpers.js";
 
 // These helper functions are important for making optimism work with
 // asynchronous code. In order to register parent-child dependencies,
@@ -55,7 +56,7 @@ export type OptimisticWrapperFunction<
   readonly size: number;
 
   // Snapshot of wrap options used to create this wrapper function.
-  options: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey>;
+  options: OptionsWithCacheInstance<TArgs, TKeyArgs, TCacheKey>;
 
   // "Dirty" any cached Entry stored for the given arguments, marking that Entry
   // and its ancestors as potentially needing to be recomputed. The .dirty(...)
@@ -89,10 +90,16 @@ export type OptimisticWrapperFunction<
   makeCacheKey: (...args: TKeyArgs) => TCacheKey;
 };
 
+export { CommonCache }
+export interface CommonCacheConstructor<TCacheKey, TResult, TArgs extends any[]> extends Function {
+  new <K extends TCacheKey, V extends Entry<TArgs, TResult>>(max?: number, dispose?: (value: V, key?: K) => void): CommonCache<K,V>;
+}
+
 export type OptimisticWrapOptions<
   TArgs extends any[],
   TKeyArgs extends any[] = TArgs,
   TCacheKey = any,
+  TResult = any,
 > = {
   // The maximum number of cache entries that should be retained before the
   // cache begins evicting the oldest ones.
@@ -103,13 +110,24 @@ export type OptimisticWrapOptions<
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
-  makeCacheKey?: (...args: TKeyArgs) => TCacheKey;
+  makeCacheKey?: (...args: NoInfer<TKeyArgs>) => TCacheKey;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
+  cache?: CommonCache<NoInfer<TCacheKey>, Entry<NoInfer<TArgs>, NoInfer<TResult>>>
+    | CommonCacheConstructor<NoInfer<TCacheKey>, NoInfer<TResult>, NoInfer<TArgs>>;
 };
 
-const caches = new Set<Cache<any, AnyEntry>>();
+export interface OptionsWithCacheInstance<
+  TArgs extends any[],
+  TKeyArgs extends any[] = TArgs,
+  TCacheKey = any,
+  TResult = any,
+> extends OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> {
+  cache: CommonCache<NoInfer<TCacheKey>, Entry<NoInfer<TArgs>, NoInfer<TResult>>>;
+};
+
+const caches = new Set<CommonCache<any, AnyEntry>>();
 
 export function wrap<
   TArgs extends any[],
@@ -118,14 +136,15 @@ export function wrap<
   TCacheKey = any,
 >(originalFunction: (...args: TArgs) => TResult, {
   max = Math.pow(2, 16),
-  makeCacheKey = defaultMakeCacheKey,
+  makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
   keyArgs,
   subscribe,
-}: OptimisticWrapOptions<TArgs, TKeyArgs> = Object.create(null)) {
-  const cache = new Cache<TCacheKey, Entry<TArgs, TResult>>(
-    max,
-    entry => entry.dispose(),
-  );
+  cache: cacheOption = StrongCache,
+}: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
+  const cache: CommonCache<TCacheKey, Entry<TArgs, TResult>> =
+    typeof cacheOption === "function"
+      ? new cacheOption(max, entry => entry.dispose())
+      : cacheOption;
 
   const optimistic = function (): TResult {
     const key = makeCacheKey.apply(
@@ -168,9 +187,7 @@ export function wrap<
   } as OptimisticWrapperFunction<TArgs, TResult, TKeyArgs, TCacheKey>;
 
   Object.defineProperty(optimistic, "size", {
-    get() {
-      return cache["map"].size;
-    },
+    get: () => cache.size,
     configurable: false,
     enumerable: false,
   });
@@ -180,6 +197,7 @@ export function wrap<
     makeCacheKey,
     keyArgs,
     subscribe,
+    cache,
   });
 
   function dirtyKey(key: TCacheKey) {
