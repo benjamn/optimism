@@ -138,19 +138,12 @@ export function wrap<
   makeCacheKey = (defaultMakeCacheKey as () => TCacheKey),
   keyArgs,
   subscribe,
-  cache: cacheOption,
+  cache: cacheOption = StrongCache,
 }: OptimisticWrapOptions<TArgs, TKeyArgs, TCacheKey, TResult> = Object.create(null)) {
-  let cache: CommonCache<TCacheKey, Entry<TArgs, TResult>>;
-  if (cacheOption) {
-    cache = typeof cacheOption === "function"
-      ? new cacheOption(max)
+  const cache: CommonCache<TCacheKey, Entry<TArgs, TResult>> =
+    typeof cacheOption === "function"
+      ? new cacheOption(max, entry => entry.dispose())
       : cacheOption;
-  } else {
-    cache = new StrongCache<TCacheKey, Entry<TArgs, TResult>>(
-      max,
-      entry => entry.dispose(),
-    );
-  }
 
   const optimistic = function (): TResult {
     const key = makeCacheKey.apply(
