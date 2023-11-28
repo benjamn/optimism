@@ -37,7 +37,7 @@ describe("optimism", function () {
     assert.strictEqual(test("a"), "aNaCl");
   });
 
-  it("can manually set the `Cache` implementation", () => {
+  it("can manually specify a cache instance", () => {
     class Cache<K, V> implements CommonCache<K, V> {
       private _cache = new Map<K, V>()
       has = this._cache.has.bind(this._cache);
@@ -66,6 +66,36 @@ describe("optimism", function () {
     assert.strictEqual(wrapped({ value: "test" }), "test transformed");
     assert.strictEqual(wrapped({ value: "test" }), "test transformed");
     cache.get("test").value[0] = "test modified";
+    assert.strictEqual(wrapped({ value: "test" }), "test modified");
+  });
+
+  it("can manually specify a cache constructor", () => {
+    class Cache<K, V> implements CommonCache<K, V> {
+      private _cache = new Map<K, V>()
+      has = this._cache.has.bind(this._cache);
+      get = this._cache.get.bind(this._cache);
+      delete = this._cache.delete.bind(this._cache);
+      get size(){ return this._cache.size }
+      set(key: K, value: V): V {
+        this._cache.set(key, value);
+        return value;
+      }
+      clean(){};
+    }
+
+    const wrapped = wrap(
+      (obj: { value: string }) => obj.value + " transformed",
+      {
+        cache: Cache,
+        makeCacheKey(obj) {
+          return obj.value;
+        },
+      }
+    );
+    assert.ok(wrapped.options.cache instanceof Cache);
+    assert.strictEqual(wrapped({ value: "test" }), "test transformed");
+    assert.strictEqual(wrapped({ value: "test" }), "test transformed");
+    wrapped.options.cache.get("test").value[0] = "test modified";
     assert.strictEqual(wrapped({ value: "test" }), "test modified");
   });
 
@@ -725,7 +755,7 @@ describe("optimism", function () {
     assert.strictEqual(sumFirst.forget(9), false);
   });
 
-  it("exposes optimistic.size property, returning cache.map.size", function () {
+  it("exposes optimistic.{size,options.cache.size} properties", function () {
     const d = dep<string>();
     const fib = wrap((n: number): number => {
       d("shared");
@@ -736,7 +766,12 @@ describe("optimism", function () {
       },
     });
 
-    assert.strictEqual(fib.size, 0);
+    function size() {
+      assert.strictEqual(fib.options.cache.size, fib.size);
+      return fib.size;
+    }
+
+    assert.strictEqual(size(), 0);
 
     assert.strictEqual(fib(0), 0);
     assert.strictEqual(fib(1), 1);
@@ -748,22 +783,22 @@ describe("optimism", function () {
     assert.strictEqual(fib(7), 13);
     assert.strictEqual(fib(8), 21);
 
-    assert.strictEqual(fib.size, 9);
+    assert.strictEqual(size(), 9);
 
     fib.dirty(6);
     // Merely dirtying an Entry does not remove it from the LRU cache.
-    assert.strictEqual(fib.size, 9);
+    assert.strictEqual(size(), 9);
 
     fib.forget(6);
     // Forgetting an Entry both dirties it and removes it from the LRU cache.
-    assert.strictEqual(fib.size, 8);
+    assert.strictEqual(size(), 8);
 
     fib.forget(4);
-    assert.strictEqual(fib.size, 7);
+    assert.strictEqual(size(), 7);
 
     // This way of calling d.dirty causes any parent Entry objects to be
     // forgotten (removed from the LRU cache).
     d.dirty("shared", "forget");
-    assert.strictEqual(fib.size, 0);
+    assert.strictEqual(size(), 0);
   });
 });
