@@ -65,29 +65,30 @@ export type OptimisticWrapperFunction<
   // then it matters that .dirty takes TKeyArgs instead of TArgs.
   dirty: (...args: TKeyArgs) => void;
   // A version of .dirty that accepts a key returned by .getKey.
-  dirtyKey: (key: TCacheKey) => void;
+  dirtyKey: (key: TCacheKey | undefined) => void;
 
   // Examine the current value without recomputing it.
   peek: (...args: TKeyArgs) => TResult | undefined;
   // A version of .peek that accepts a key returned by .getKey.
-  peekKey: (key: TCacheKey) => TResult | undefined;
+  peekKey: (key: TCacheKey | undefined) => TResult | undefined;
 
   // Completely remove the entry from the cache, dirtying any parent entries.
   forget: (...args: TKeyArgs) => boolean;
   // A version of .forget that accepts a key returned by .getKey.
-  forgetKey: (key: TCacheKey) => boolean;
+  forgetKey: (key: TCacheKey | undefined) => boolean;
 
   // In order to use the -Key version of the above functions, you need a key
   // rather than the arguments used to compute the key. These two functions take
   // TArgs or TKeyArgs and return the corresponding TCacheKey. If no keyArgs
   // function has been configured, TArgs will be the same as TKeyArgs, and thus
   // getKey and makeCacheKey will be synonymous.
-  getKey: (...args: TArgs) => TCacheKey;
+  getKey: (...args: TArgs) => TCacheKey | undefined;
 
   // This property is equivalent to the makeCacheKey function provided in the
   // OptimisticWrapOptions, or (if no options.makeCacheKey function is provided)
-  // a default implementation of makeCacheKey.
-  makeCacheKey: (...args: TKeyArgs) => TCacheKey;
+  // a default implementation of makeCacheKey. This function is also exposed as
+  // optimistic.options.makeCacheKey, somewhat redundantly.
+  makeCacheKey: (...args: TKeyArgs) => TCacheKey | undefined;
 };
 
 export { CommonCache }
@@ -110,7 +111,7 @@ export type OptimisticWrapOptions<
   // The makeCacheKey function takes the same arguments that were passed to
   // the wrapper function and returns a single value that can be used as a key
   // in a Map to identify the cached result.
-  makeCacheKey?: (...args: NoInfer<TKeyArgs>) => TCacheKey;
+  makeCacheKey?: (...args: NoInfer<TKeyArgs>) => TCacheKey | undefined;
   // If provided, the subscribe function should either return an unsubscribe
   // function or return nothing.
   subscribe?: (...args: TArgs) => void | (() => any);
@@ -200,8 +201,8 @@ export function wrap<
     cache,
   });
 
-  function dirtyKey(key: TCacheKey) {
-    const entry = cache.get(key);
+  function dirtyKey(key: TCacheKey | undefined) {
+    const entry = key && cache.get(key);
     if (entry) {
       entry.setDirty();
     }
@@ -211,8 +212,8 @@ export function wrap<
     dirtyKey(makeCacheKey.apply(null, arguments as any));
   };
 
-  function peekKey(key: TCacheKey) {
-    const entry = cache.get(key);
+  function peekKey(key: TCacheKey | undefined) {
+    const entry = key && cache.get(key);
     if (entry) {
       return entry.peek();
     }
@@ -222,8 +223,8 @@ export function wrap<
     return peekKey(makeCacheKey.apply(null, arguments as any));
   };
 
-  function forgetKey(key: TCacheKey) {
-    return cache.delete(key);
+  function forgetKey(key: TCacheKey | undefined) {
+    return key ? cache.delete(key) : false;
   }
   optimistic.forgetKey = forgetKey;
   optimistic.forget = function forget() {
@@ -233,7 +234,7 @@ export function wrap<
   optimistic.makeCacheKey = makeCacheKey;
   optimistic.getKey = keyArgs ? function getKey() {
     return makeCacheKey.apply(null, keyArgs.apply(null, arguments as any));
-  } : makeCacheKey as (...args: any[]) => TCacheKey;
+  } : makeCacheKey as (...args: any[]) => TCacheKey | undefined;
 
   return Object.freeze(optimistic);
 }
