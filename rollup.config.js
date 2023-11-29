@@ -5,6 +5,7 @@ const globals = {
   tslib: "tslib",
   assert: "assert",
   crypto: "crypto",
+  "@wry/equality": "wryEquality",
   "@wry/context": "wryContext",
   "@wry/trie": "wryTrie",
   "@wry/caches": "wryCaches",
