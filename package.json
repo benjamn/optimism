@@ -1,6 +1,6 @@
 {
   "name": "optimism",
-  "version": "0.18.0-pre.1",
+  "version": "0.18.0",
   "author": "Ben Newman <ben@benjamn.com>",
   "description": "Composable reactive caching with efficient invalidation.",
   "keywords": [
