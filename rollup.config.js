@@ -7,6 +7,7 @@ const globals = {
   crypto: "crypto",
   "@wry/context": "wryContext",
   "@wry/trie": "wryTrie",
+  "@wry/caches": "wryCaches",
 };
 
 function external(id) {
