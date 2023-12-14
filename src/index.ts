@@ -131,7 +131,7 @@ export interface OptionsWithCacheInstance<
   cache: CommonCache<NoInfer<TCacheKey>, Entry<NoInfer<TArgs>, NoInfer<TResult>>>;
 };
 
-const caches = new Set<CommonCache<any, AnyEntry>>();
+const commonCaches = new Set<CommonCache<any, AnyEntry>>();
 
 export function wrap<
   TArgs extends any[],
@@ -179,14 +179,14 @@ export function wrap<
     // since we just finished computing its value.
     cache.set(key, entry);
 
-    caches.add(cache);
+    commonCaches.add(cache);
 
     // Clean up any excess entries in the cache, but only if there is no
     // active parent entry, meaning we're not in the middle of a larger
     // computation that might be flummoxed by the cleaning.
     if (! parentEntrySlot.hasValue()) {
-      caches.forEach(cache => cache.clean());
-      caches.clear();
+      commonCaches.forEach(cache => cache.clean());
+      commonCaches.clear();
     }
 
     return value;
