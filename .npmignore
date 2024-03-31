@@ -1,5 +1,7 @@
 /node_modules
 /lib/tests
+/src
+/.github
 tsconfig.json
 tsconfig.es5.json
 rollup.config.js
