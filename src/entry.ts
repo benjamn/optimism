@@ -232,6 +232,23 @@ function mightBeDirty(entry: AnyEntry) {
 }
 
 function setClean(entry: AnyEntry) {
+  // A native stack overflow depends on the current call depth, not the cache
+  // key. Keep the entry dirty before reporting clean to its parents, so a
+  // parent that caught the error also retries instead of caching its fallback.
+  // Existing parents already know this entry might be dirty when it recomputes.
+  if (entry.value.length === 2) {
+    try {
+      const error = entry.value[1];
+      if (error instanceof RangeError &&
+          error.message === "Maximum call stack size exceeded") {
+        entry.dirty = true;
+        return;
+      }
+    } catch {
+      // Inspecting an arbitrary thrown value must not replace its exception.
+    }
+  }
+
   entry.dirty = false;
 
   if (mightBeDirty(entry)) {
